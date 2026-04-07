@@ -2,162 +2,172 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <title>Mon Application</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mon App</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { margin:0; font-family:'Outfit', sans-serif; background:#111; color:#fff; }
+    .glass { background: rgba(255,255,255,0.05); border-radius:12px; padding:12px; }
+    .btn-primary { background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+    .input-field { background:#222; color:#fff; border:1px solid #444; border-radius:6px; padding:6px; }
+    .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:1000; }
+    .modal-overlay.active { display:flex; }
+    .modal-content { background:#222; padding:20px; border-radius:12px; max-width:400px; width:90%; color:#fff; }
+    #feedContainer { padding:12px; }
+    #particleContainer { position:fixed; bottom:0; left:0; width:100%; height:100px; pointer-events:none; }
+    .particle { position:absolute; width:6px; height:6px; background:#ef4444; border-radius:50%; animation:rise linear infinite; }
+    @keyframes rise { 0% { transform:translateY(0); opacity:1 } 100% { transform:translateY(-120px); opacity:0 } }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div id="app">
-  <!-- Ton HTML actuel ici (modals, feed, orders, missions, etc.) -->
-</div>
+  <header style="padding:12px; text-align:center;">
+    <h1 id="profileName">Nom du Profil</h1>
+    <p id="profileBio">Bio du profil</p>
+  </header>
 
-<script>
-  // ================= Supabase Setup =================
-  const SUPABASE_URL = 'https://ccmjvekzbiykpbkzewic.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <div id="feedContainer"></div>
+  <div id="emptyState">Aucun contenu pour le moment</div>
 
-  // ================= Utilitaires =================
-  function esc(str) {
-    if (!str) return '';
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
+  <!-- Modals -->
+  <div id="orderModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Passer une commande</h3>
+      <input type="text" id="orderName" placeholder="Nom" class="input-field" /><br><br>
+      <input type="text" id="orderPhone" placeholder="Téléphone" class="input-field" /><br><br>
+      <input type="date" id="orderBirthDate" class="input-field" /><br><br>
+      <input type="text" id="orderCity" placeholder="Ville" class="input-field" /><br><br>
+      <button id="confirmOrderBtn" class="btn-primary" onclick="Component.Orders.submitOrder(event)">✓ Confirmer Commande</button>
+      <button onclick="Component.Modal.close('orderModal')" class="btn-primary" style="background:#555; margin-left:8px;">Annuler</button>
+    </div>
+  </div>
 
-  function timeAgo(iso) {
-    const diff = Date.now() - new Date(iso).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return "à l'instant";
-    if (m < 60) return `il y a ${m}m`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `il y a ${h}h`;
-    return `il y a ${Math.floor(h / 24)}j`;
-  }
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal-content">
+      <p>Voulez-vous vraiment supprimer ?</p>
+      <button id="confirmDeleteBtn" class="btn-primary" onclick="Component.Feed.confirmDelete()">Oui</button>
+      <button onclick="Component.Modal.close('confirmModal')" class="btn-primary" style="background:#555; margin-left:8px;">Non</button>
+    </div>
+  </div>
 
-  // ================= State =================
-  const State = {
-    posts: [],
-    comments: [],
-    missions: [],
-    orders: [],
-    userPins: {},
-    currentUser: null,
-    mainMessage: null
-  };
+  <!-- Particles -->
+  <div id="particleContainer"></div>
 
-  // ================= Data SDK Supabase =================
-  window.dataSdk = {
-    async create(record) {
-      try {
-        let table = '';
-        if (record.type) table = 'posts';
-        else if (record.message_id) table = 'messages';
-        else if (record.mission_id) table = 'missions';
-        else if (record.comment_id) table = 'comments';
-        else if (record.order_id) table = 'orders';
-        if (!table) throw new Error('Record type unknown');
+  <!-- Toast notifications -->
+  <div id="toastContainer" style="position:fixed; bottom:12px; right:12px; z-index:2000;"></div>
 
-        const { data, error } = await supabase
-          .from(table)
-          .insert([{ ...record }])
-          .select()
-          .single();
+  <!-- Scripts -->
+  <script>
+    // ---------- Supabase init ----------
+    const supabaseUrl = 'https://ccmjvekzbiykpbkzewic.supabase.co';
+    const supabaseKey = 'sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        if (error) throw error;
-        return { isOk: true, data };
-      } catch (err) {
-        return { isOk: false, isError: true, error: err };
+    // ---------- State ----------
+    const State = {
+      posts: [], comments: [], messages: [],
+      missions: [], orders: [],
+      userPins: {}, isAdmin:false, deleteTarget:null
+    };
+
+    // ---------- Utils ----------
+    const Component = {};
+    Component.Modal = {
+      open(id){ document.getElementById(id)?.classList.add('active'); },
+      close(id){ document.getElementById(id)?.classList.remove('active'); }
+    };
+    Component.Toast = {
+      show(msg,type='info'){ 
+        const div = document.createElement('div'); 
+        div.style.background=(type==='error')?'#ef4444':'#22c55e'; 
+        div.style.color='#fff'; div.style.padding='8px 12px'; div.style.borderRadius='6px'; div.style.marginTop='6px';
+        div.textContent=msg; document.getElementById('toastContainer')?.appendChild(div);
+        setTimeout(()=>{ div.remove(); },3000);
       }
-    },
+    };
 
-    async update(record) {
-      try {
-        let table = '';
-        if (record.type) table = 'posts';
-        else if (record.message_id) table = 'messages';
-        else if (record.mission_id) table = 'missions';
-        else if (record.comment_id) table = 'comments';
-        else if (record.order_id) table = 'orders';
-        if (!table) throw new Error('Record type unknown');
+    // ---------- Orders ----------
+    Component.Orders = {
+      openForm(id,title,price){
+        this.currentProduct = {__backendId:id,title,price};
+        Component.Modal.open('orderModal');
+      },
+      async submitOrder(event){
+        const name = document.getElementById('orderName')?.value||'';
+        const phone = document.getElementById('orderPhone')?.value||'';
+        const birthDate = document.getElementById('orderBirthDate')?.value||'';
+        const city = document.getElementById('orderCity')?.value||'';
+        const product = this.currentProduct || {};
 
-        const { data, error } = await supabase
-          .from(table)
-          .update(record)
-          .eq('__backendId', record.__backendId)
-          .select()
-          .single();
+        // Désactiver bouton
+        const btn = event?.target;
+        if(btn){ btn.disabled=true; btn.textContent='⏳'; }
 
-        if (error) throw error;
-        return { isOk: true, data };
-      } catch (err) {
-        return { isOk: false, isError: true, error: err };
+        try{
+          // Créer commande sur Supabase
+          const { data, error } = await supabase.from('orders').insert([{
+            order_product_id: product.__backendId,
+            order_user: phone,
+            order_status:'pending',
+            order_created_at: new Date().toISOString()
+          }]);
+          if(error) throw error;
+
+          Component.Toast.show('Commande envoyée ! 🎉','success');
+          document.getElementById('orderName').value='';
+          document.getElementById('orderPhone').value='';
+          document.getElementById('orderBirthDate').value='';
+          document.getElementById('orderCity').value='';
+          Component.Modal.close('orderModal');
+        }catch(err){
+          Component.Toast.show('Erreur: '+err.message,'error');
+        }finally{
+          if(btn){ btn.disabled=false; btn.textContent='✓ Confirmer Commande'; }
+        }
       }
-    },
+    };
 
-    async delete(record) {
-      try {
-        let table = '';
-        if (record.type) table = 'posts';
-        else if (record.message_id) table = 'messages';
-        else if (record.mission_id) table = 'missions';
-        else if (record.comment_id) table = 'comments';
-        else if (record.order_id) table = 'orders';
-        if (!table) throw new Error('Record type unknown');
-
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .eq('__backendId', record.__backendId);
-
-        if (error) throw error;
-        return { isOk: true };
-      } catch (err) {
-        return { isOk: false, isError: true, error: err };
+    // ---------- Feed ----------
+    Component.Feed = {
+      async render(posts){
+        const container = document.getElementById('feedContainer');
+        if(!container) return;
+        container.innerHTML='';
+        posts.forEach(post=>{
+          const div=document.createElement('div');
+          div.className='glass mb-3';
+          div.innerHTML=`<h4>${post.title||'Post'}</h4><p>${post.content||''}</p>`;
+          container.appendChild(div);
+        });
+      },
+      async load(){
+        const { data: posts, error } = await supabase.from('posts').select('*');
+        if(error){ console.error(error); return; }
+        State.posts = posts;
+        this.render(posts);
       }
-    },
+    };
 
-    async init() {
-      try {
-        // Charger tous les posts, messages, commentaires
-        const { data: posts } = await supabase.from('posts').select('*');
-        const { data: messages } = await supabase.from('messages').select('*');
-        const { data: comments } = await supabase.from('comments').select('*');
-        const { data: missions } = await supabase.from('missions').select('*');
-        const { data: orders } = await supabase.from('orders').select('*');
-
-        State.posts = posts || [];
-        State.comments = comments || [];
-        State.missions = missions || [];
-        State.orders = orders || [];
-        State.messages = messages || [];
-
-        Component.Feed.render(State.posts);
-        Component.Missions.render(State.missions, State.currentUser?.phone || null);
-        return { isOk: true };
-      } catch (err) {
-        console.error('Supabase init error:', err);
-        return { isOk: false, isError: true, error: err };
+    // ---------- Particles ----------
+    Component.Particles = {
+      init(){ 
+        const c = document.getElementById('particleContainer');
+        if(!c) return;
+        for(let i=0;i<15;i++){
+          const p=document.createElement('div');
+          p.className='particle';
+          p.style.left=Math.random()*100+'%';
+          p.style.animationDelay=Math.random()*4+'s';
+          c.appendChild(p);
+        }
       }
-    }
-  };
+    };
 
-  // ================= Init =================
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Récupérer l'utilisateur si déjà connecté
-    const user = localStorage.getItem('currentUser');
-    if (user) State.currentUser = JSON.parse(user);
+    // ---------- Init ----------
+    document.addEventListener('DOMContentLoaded',()=>{
+      Component.Particles.init();
+      Component.Feed.load();
+    });
 
-    await window.dataSdk.init();
-
-    // Appeler tes autres initialisations (Particles, Modals, Auth, etc.)
-    if (Component.Particles) Component.Particles.init();
-    if (Component.UserAuth) Component.UserAuth.updateDisplay();
-    if (window.lucide) window.lucide.createIcons();
-  });
-
-</script>
-<script src="app-components.js"></script> <!-- ton code HTML/JS pour Feed, Orders, Missions, etc. -->
+  </script>
 </body>
 </html>
