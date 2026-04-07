@@ -1,206 +1,585 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AFRO BOY</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.35.0/dist/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.265.0/dist/lucide.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-body { background:#0a0a0a; color:white; font-family:Outfit,sans-serif; }
-.particle { width:6px; height:6px; background:#ff5555; border-radius:50%; position:absolute; animation-name:particleAnim; animation-iteration-count:infinite; }
-@keyframes particleAnim { 0%{transform:translateY(0);} 100%{transform:translateY(-100px); opacity:0;} }
-</style>
-</head>
-<body class="relative overflow-x-hidden">
+// VERSION FINALE — APP GITHUB + SUPABASE
+// =====================================================
+// 1) Dans index.html, ajoute AVANT ton script principal :
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+// =====================================================
 
-<!-- PARTICLES -->
-<div id="particleContainer" class="absolute inset-0 pointer-events-none"></div>
+const SUPABASE_URL = 'COLLE_ICI_TON_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'COLLE_ICI_TA_PUBLISHABLE_ANON_KEY';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-<div class="p-4 max-w-3xl mx-auto">
-  <h1 id="profileName" class="text-3xl font-bold mb-2">AFRO BOY</h1>
-  <p id="profileBio" class="mb-4">Bienvenue dans ton espace</p>
-
-  <!-- AUTH -->
-  <div id="authSection" class="mb-4 flex flex-wrap gap-2">
-    <input id="phoneInput" placeholder="Numéro téléphone" class="p-2 text-black rounded flex-1">
-    <input id="nameInput" placeholder="Nom" class="p-2 text-black rounded flex-1">
-    <button id="registerBtn" class="bg-red-600 p-2 rounded">S'inscrire</button>
-    <button id="loginBtn" class="bg-green-600 p-2 rounded">Se connecter</button>
-  </div>
-
-  <!-- STARS -->
-  <div id="userStarsDisplay" class="mb-4 text-yellow-400 font-bold text-lg">Étoiles: 0</div>
-
-  <!-- POSTS -->
-  <h2 class="text-xl font-semibold mb-2">Posts</h2>
-  <div id="postsContainer" class="mb-6 space-y-2"></div>
-
-  <!-- MISSIONS -->
-  <h2 class="text-xl font-semibold mb-2">Missions</h2>
-  <div id="missionsContainer" class="mb-6 space-y-2"></div>
-</div>
-
-<script>
-// ======================
-// INIT SUPABASE
-// ======================
-const supabaseUrl = 'https://ccmjvekzbiykpbkzewic.supabase.co';
-const supabaseKey = 'sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-// ======================
-// STATE
-// ======================
-const State = {
-  posts: [],
-  missions: [],
-  currentUser: null
+const TABLES = {
+  posts: 'posts',
+  messages: 'messages',
+  comments: 'comments',
+  missions: 'missions',
+  orders: 'orders',
+  users: 'users',
+  likes: 'likes',
+  pins: 'pins',
+  media: 'media'
 };
 
-// ======================
-// USER AUTH
-// ======================
-async function registerUser() {
-  const phone = document.getElementById('phoneInput').value;
-  const name = document.getElementById('nameInput').value;
-  if(!phone || !name){ alert('Remplis tous les champs'); return; }
-  const { data, error } = await supabase.from('users').insert([{ phone, name, stars:0 }]).select().single();
-  if(error){ alert(error.message); return; }
-  State.currentUser = data;
-  updateUserStars();
-  alert('Utilisateur enregistré ✅');
+// =====================================================
+// UTILITAIRES SESSION UTILISATEUR
+// =====================================================
+function getCurrentUser() {
+  const user = localStorage.getItem('currentUser');
+  return user ? JSON.parse(user) : null;
 }
 
-async function loginUser() {
-  const phone = document.getElementById('phoneInput').value;
-  if(!phone){ alert('Remplis le numéro'); return; }
-  const { data, error } = await supabase.from('users').select('*').eq('phone', phone).single();
-  if(error){ alert(error.message); return; }
-  State.currentUser = data;
-  updateUserStars();
-  alert('Utilisateur connecté ✅');
+function setCurrentUser(user) {
+  localStorage.setItem('currentUser', JSON.stringify(user));
 }
 
-function updateUserStars(){
-  const usd = document.getElementById('userStarsDisplay');
-  if(State.currentUser && usd) usd.textContent = `Étoiles: ${State.currentUser.stars}`;
+function getSafeId() {
+  return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
 }
 
-// ======================
-// POSTS
-// ======================
-async function loadPosts() {
-  const { data, error } = await supabase.from('posts').select('*').order('created_at',{ascending:false});
-  if(error){ console.error(error); return; }
-  State.posts = data;
-  renderPosts();
-}
+// =====================================================
+// INIT DATA — REMPLACE TON ANCIEN initData() COMPLET
+// =====================================================
+async function initData() {
+  async function loadSharedData() {
+    const [postsRes, messagesRes, commentsRes] = await Promise.all([
+      supabaseClient.from(TABLES.posts).select('*').order('created_at', { ascending: false }),
+      supabaseClient.from(TABLES.messages).select('*').order('message_created_at', { ascending: false }),
+      supabaseClient.from(TABLES.comments).select('*').order('comment_created_at', { ascending: true })
+    ]);
 
-function renderPosts(){
-  const container = document.getElementById('postsContainer');
-  container.innerHTML = '';
-  State.posts.forEach(post=>{
-    const liked = post.liked_by?.includes(State.currentUser?.phone) || false;
-    container.innerHTML += `
-      <div class="bg-gray-800 p-3 rounded-md shadow-md flex justify-between items-center">
-        <p>${post.content}</p>
-        <div>
-          <button class="text-lg" style="color:${liked?'red':'#ccc'}" onclick="likePost('${post.id}')">❤️ ${post.likes||0}</button>
-        </div>
-      </div>
-    `;
+    return {
+      posts: postsRes.data || [],
+      messages: messagesRes.data || [],
+      comments: commentsRes.data || []
+    };
+  }
+
+  async function loadPersonalData(userPhone) {
+    if (!userPhone) return { missions: [], orders: [], likes: [], pins: [], userRow: null };
+
+    const [missionsRes, ordersRes, likesRes, pinsRes, userRes] = await Promise.all([
+      supabaseClient.from(TABLES.missions).select('*').eq('mission_user', userPhone).order('mission_created_at', { ascending: false }),
+      supabaseClient.from(TABLES.orders).select('*').eq('order_user', userPhone).order('order_created_at', { ascending: false }),
+      supabaseClient.from(TABLES.likes).select('*').eq('user_phone', userPhone),
+      supabaseClient.from(TABLES.pins).select('*').eq('user_phone', userPhone),
+      supabaseClient.from(TABLES.users).select('*').eq('phone', userPhone).maybeSingle()
+    ]);
+
+    return {
+      missions: missionsRes.data || [],
+      orders: ordersRes.data || [],
+      likes: likesRes.data || [],
+      pins: pinsRes.data || [],
+      userRow: userRes.data || null
+    };
+  }
+
+  function processData(shared, personal) {
+    State.posts = shared.posts || [];
+    State.messages = shared.messages || [];
+    State.comments = shared.comments || [];
+    State.missions = personal?.missions || [];
+    State.orders = personal?.orders || [];
+
+    State.userPins = {};
+    (personal?.pins || []).forEach(pin => {
+      if (!State.userPins[pin.post_id]) State.userPins[pin.post_id] = [];
+      State.userPins[pin.post_id].push(pin.user_phone);
+    });
+
+    const likedPostIds = new Set((personal?.likes || []).map(l => l.post_id));
+    State.posts = State.posts.map(post => ({ ...post, liked: likedPostIds.has(post.__backendId) }));
+
+    State.recordCount =
+      (State.posts?.length || 0) +
+      (State.messages?.length || 0) +
+      (State.comments?.length || 0) +
+      (State.missions?.length || 0) +
+      (State.orders?.length || 0);
+
+    State.mainMessage = (State.messages || []).find(m => m.message_id && m.message_id.startsWith('main_'));
+
+    const user = getCurrentUser();
+    if (user) {
+      if (personal?.userRow) {
+        const merged = { ...user, ...personal.userRow };
+        setCurrentUser(merged);
+      }
+
+      const userStars = Component.Missions.getUserStars(user.phone);
+      const usd = document.getElementById('userStarsDisplay');
+      if (usd) usd.textContent = userStars;
+
+      Component.Rewards.updateUserLevel(userStars);
+      Component.Missions.updateProgressBar();
+      Component.Missions.render(State.missions, user.phone);
+    } else {
+      Component.Missions.render(State.missions, null);
+    }
+
+    Component.Rewards.renderQuickMissions();
+    Component.Feed.render(State.posts);
+    Component.Depose.displayMainMessage();
+    Component.Depose.render(State.messages);
+    Component.Depose.updateAdminButtonsState();
+    Component.Admin.updateProfileStats();
+  }
+
+  async function refreshAllData() {
+    const shared = await loadSharedData();
+    const user = getCurrentUser();
+    const personal = user ? await loadPersonalData(user.phone) : { missions: [], orders: [], likes: [], pins: [], userRow: null };
+    processData(shared, personal);
+  }
+
+  await refreshAllData();
+
+  window.refreshAllData = refreshAllData;
+
+  window.dataSdk = {
+    async create(record) {
+      try {
+        let table = '';
+        if (record.type) table = TABLES.posts;
+        else if (record.message_id) table = TABLES.messages;
+        else if (record.mission_id) table = TABLES.missions;
+        else if (record.comment_id) table = TABLES.comments;
+        else if (record.order_id) table = TABLES.orders;
+        else return { isOk: false, isError: true, error: new Error('Type de record inconnu') };
+
+        const payload = { ...record, __backendId: record.__backendId || getSafeId() };
+        const { data, error } = await supabaseClient.from(table).insert([payload]).select().single();
+        if (error) return { isOk: false, isError: true, error };
+
+        await refreshAllData();
+        return { isOk: true, isError: false, data };
+      } catch (err) {
+        return { isOk: false, isError: true, error: err };
+      }
+    },
+
+    async update(record) {
+      try {
+        let table = '';
+        if (record.type) table = TABLES.posts;
+        else if (record.message_id) table = TABLES.messages;
+        else if (record.mission_id) table = TABLES.missions;
+        else if (record.comment_id) table = TABLES.comments;
+        else if (record.order_id) table = TABLES.orders;
+        else return { isOk: false, isError: true, error: new Error('Type de record inconnu') };
+
+        const { error } = await supabaseClient.from(table).update(record).eq('__backendId', record.__backendId);
+        if (error) return { isOk: false, isError: true, error };
+
+        await refreshAllData();
+        return { isOk: true, isError: false, data: void 0 };
+      } catch (err) {
+        return { isOk: false, isError: true, error: err };
+      }
+    },
+
+    async delete(record) {
+      try {
+        let table = '';
+        if (record.type) table = TABLES.posts;
+        else if (record.message_id) table = TABLES.messages;
+        else if (record.mission_id) table = TABLES.missions;
+        else if (record.comment_id) table = TABLES.comments;
+        else if (record.order_id) table = TABLES.orders;
+        else return { isOk: false, isError: true, error: new Error('Type de record inconnu') };
+
+        const { error } = await supabaseClient.from(table).delete().eq('__backendId', record.__backendId);
+        if (error) return { isOk: false, isError: true, error };
+
+        await refreshAllData();
+        return { isOk: true, isError: false, data: void 0 };
+      } catch (err) {
+        return { isOk: false, isError: true, error: err };
+      }
+    },
+
+    async init() {
+      await refreshAllData();
+      return { isOk: true, isError: false, data: void 0 };
+    }
+  };
+
+  [TABLES.posts, TABLES.messages, TABLES.comments, TABLES.missions, TABLES.orders, TABLES.likes, TABLES.pins, TABLES.users].forEach(table => {
+    supabaseClient
+      .channel('realtime-' + table)
+      .on('postgres_changes', { event: '*', schema: 'public', table }, async () => {
+        await refreshAllData();
+      })
+      .subscribe();
   });
 }
 
-async function likePost(id){
-  if(!State.currentUser){ alert('Connecte-toi pour liker!'); return; }
-  const post = State.posts.find(p=>p.id===id);
-  let liked_by = post.liked_by || [];
-  if(liked_by.includes(State.currentUser.phone)){
-    liked_by = liked_by.filter(p=>p!==State.currentUser.phone);
-    post.likes = Math.max(0, (post.likes||0)-1);
+// =====================================================
+// PATCH UTILISATEURS — AJOUTE/REMPLACE DANS UserAuth
+// =====================================================
+// Mets ces fonctions dans Component.UserAuth si elles n'existent pas / adapte les tiennes.
+
+Component.UserAuth = Component.UserAuth || {};
+
+Component.UserAuth.register = async function () {
+  const username = (document.getElementById('registerUsername')?.value || '').trim();
+  const phone = (document.getElementById('registerPhone')?.value || '').trim();
+  const password = (document.getElementById('registerPassword')?.value || '').trim();
+
+  if (!username || !phone || !password) {
+    Component.Toast.show('Remplis tous les champs !', 'error');
+    return;
+  }
+
+  const { data: existing } = await supabaseClient.from(TABLES.users).select('*').eq('phone', phone).maybeSingle();
+  if (existing) {
+    Component.Toast.show('Ce numéro existe déjà', 'error');
+    return;
+  }
+
+  const userRecord = {
+    user_id: 'user_' + Date.now(),
+    username,
+    phone,
+    password,
+    registered_at: new Date().toISOString(),
+    vip_emoji: '👑',
+    vip_name: 'PROFIL VIP'
+  };
+
+  const { data, error } = await supabaseClient.from(TABLES.users).insert([userRecord]).select().single();
+  if (error) {
+    Component.Toast.show('Erreur: ' + error.message, 'error');
+    return;
+  }
+
+  setCurrentUser(data);
+  Component.Toast.show('Compte créé ! 🎉', 'success');
+  Component.Modal.close('userModal');
+  Component.UserAuth.updateDisplay?.();
+  if (window.refreshAllData) await window.refreshAllData();
+};
+
+Component.UserAuth.login = async function () {
+  const phone = (document.getElementById('loginPhone')?.value || '').trim();
+  const password = (document.getElementById('loginPassword')?.value || '').trim();
+
+  if (!phone || !password) {
+    Component.Toast.show('Remplis tous les champs !', 'error');
+    return;
+  }
+
+  const { data, error } = await supabaseClient.from(TABLES.users).select('*').eq('phone', phone).eq('password', password).maybeSingle();
+  if (error || !data) {
+    Component.Toast.show('Identifiants invalides', 'error');
+    return;
+  }
+
+  setCurrentUser(data);
+  Component.Toast.show('Connexion réussie ! ✅', 'success');
+  Component.Modal.close('userModal');
+  Component.UserAuth.updateDisplay?.();
+  if (window.refreshAllData) await window.refreshAllData();
+};
+
+// =====================================================
+// PATCH VIP SAVE PROFILE — REMPLACE saveProfile()
+// =====================================================
+Component.VIP.saveProfile = async function () {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const nameInput = document.getElementById('vipProfileName').value.trim();
+  if (!nameInput) return Component.Toast.show('Écris un nom pour ton profil ! 👑', 'error');
+  if (nameInput.length > 15) return Component.Toast.show('Max 15 caractères ! 📏', 'error');
+
+  const { error } = await supabaseClient
+    .from(TABLES.users)
+    .update({ vip_emoji: this.selectedEmoji, vip_name: nameInput })
+    .eq('phone', user.phone);
+
+  if (error) return Component.Toast.show('Erreur: ' + error.message, 'error');
+
+  const updatedUser = { ...user, vip_emoji: this.selectedEmoji, vip_name: nameInput };
+  setCurrentUser(updatedUser);
+  Component.Toast.show('Profil VIP mis à jour ! 👑', 'success');
+  Component.Modal.close('vipCustomizeModal');
+  Component.UserAuth.updateDisplay?.();
+  if (window.refreshAllData) await window.refreshAllData();
+};
+
+// =====================================================
+// PATCH LIKES — REMPLACE toggleLike()
+// =====================================================
+Component.Feed.toggleLike = async function (id) {
+  const post = State.posts.find(p => p.__backendId === id);
+  if (!post) return;
+
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    Component.Toast.show('Connecte-toi pour liker ! 👤', 'error');
+    Component.UserAuth.openModal?.();
+    return;
+  }
+
+  try {
+    const { data: existingLike } = await supabaseClient
+      .from(TABLES.likes)
+      .select('*')
+      .eq('post_id', id)
+      .eq('user_phone', currentUser.phone)
+      .maybeSingle();
+
+    let newLikes = post.likes || 0;
+
+    if (existingLike) {
+      await supabaseClient.from(TABLES.likes).delete().eq('id', existingLike.id);
+      newLikes = Math.max(0, newLikes - 1);
+    } else {
+      await supabaseClient.from(TABLES.likes).insert([{ post_id: id, user_phone: currentUser.phone }]);
+      newLikes = newLikes + 1;
+    }
+
+    await supabaseClient.from(TABLES.posts).update({ likes: newLikes }).eq('__backendId', id);
+    if (window.refreshAllData) await window.refreshAllData();
+  } catch (err) {
+    Component.Toast.show('Erreur: ' + err.message, 'error');
+  }
+};
+
+// =====================================================
+// PATCH PINS — REMPLACE togglePin()
+// =====================================================
+Component.Comments.togglePin = async function (postId) {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const { data: existingPin } = await supabaseClient
+    .from(TABLES.pins)
+    .select('*')
+    .eq('post_id', postId)
+    .eq('user_phone', user.phone)
+    .maybeSingle();
+
+  if (existingPin) {
+    await supabaseClient.from(TABLES.pins).delete().eq('id', existingPin.id);
+    Component.Toast.show('Épinglage supprimé 📌', 'info');
   } else {
-    liked_by.push(State.currentUser.phone);
-    post.likes = (post.likes||0)+1;
+    await supabaseClient.from(TABLES.pins).insert([{ post_id: postId, user_phone: user.phone }]);
+    Component.Toast.show('Post épinglé ! 📌', 'success');
   }
-  const { data, error } = await supabase.from('posts').update({likes:post.likes, liked_by}).eq('id', id);
-  if(error){ console.error(error); return; }
-  renderPosts();
-}
 
-// ======================
-// MISSIONS
-// ======================
-async function loadMissions(){
-  const { data, error } = await supabase.from('missions').select('*');
-  if(error){ console.error(error); return; }
-  State.missions = data;
-  renderMissions();
-}
+  if (window.refreshAllData) await window.refreshAllData();
+};
 
-function renderMissions(){
-  const container = document.getElementById('missionsContainer');
-  container.innerHTML = '';
-  State.missions.forEach(m=>{
-    const completed = m.completed_by?.includes(State.currentUser?.phone) || false;
-    container.innerHTML += `
-      <div class="bg-gray-800 p-3 rounded-md shadow-md flex justify-between items-center">
-        <span>${m.title} - ${m.points} points</span>
-        <button class="ml-2 px-2 py-1 rounded bg-red-600" onclick="completeMission('${m.id}')">${completed ? '✅ Complété' : 'Compléter'}</button>
-      </div>
-    `;
-  });
-}
+// =====================================================
+// PATCH PDF / IMAGE PRODUIT — REMPLACE TOUT Component.PDF
+// =====================================================
+Component.PDF = {
+  currentPDFData: null,
 
-async function completeMission(id){
-  if(!State.currentUser){ alert('Connecte-toi!'); return; }
-  const mission = State.missions.find(m=>m.id===id);
-  let completed_by = mission.completed_by || [];
-  if(!completed_by.includes(State.currentUser.phone)){
-    completed_by.push(State.currentUser.phone);
-    mission.completed_by = completed_by;
-    const { data, error } = await supabase.from('missions').update({completed_by}).eq('id', id);
-    if(error){ console.error(error); return; }
-    State.currentUser.stars += mission.points;
-    await supabase.from('users').update({stars:State.currentUser.stars}).eq('phone', State.currentUser.phone);
-    updateUserStars();
-    renderMissions();
+  handlePDFUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return Component.Toast.show('Sélectionne une image ! 📸', 'error');
+    if (file.size > 5 * 1024 * 1024) return Component.Toast.show('Le fichier ne doit pas dépasser 5MB ! ⚠️', 'error');
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.currentPDFData = { file, filename: file.name, preview: e.target.result };
+      const preview = document.getElementById('photoPreview');
+      const previewImg = document.getElementById('photoPreviewImg');
+      if (previewImg) previewImg.src = e.target.result;
+      if (preview) preview.style.display = 'block';
+      const fileName = document.getElementById('pdfFileName');
+      if (fileName) {
+        fileName.textContent = `✅ ${file.name}`;
+        fileName.style.display = 'block';
+      }
+      Component.Toast.show(`Photo sélectionnée: ${file.name} ✅`, 'success');
+    };
+    reader.readAsDataURL(file);
+  },
+
+  removePhoto() {
+    this.currentPDFData = null;
+    const preview = document.getElementById('photoPreview');
+    if (preview) preview.style.display = 'none';
+    const fileName = document.getElementById('pdfFileName');
+    if (fileName) fileName.style.display = 'none';
+    const input = document.getElementById('adminPDF');
+    if (input) input.value = '';
+    Component.Toast.show('Photo supprimée', 'info');
+  },
+
+  async savePDFToProduct(productId) {
+    if (!this.currentPDFData?.file) return false;
+
+    const file = this.currentPDFData.file;
+    const filePath = `products/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+
+    const { error: uploadError } = await supabaseClient.storage.from('product-media').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      Component.Toast.show('Erreur upload image: ' + uploadError.message, 'error');
+      return false;
+    }
+
+    const { data: publicData } = supabaseClient.storage.from('product-media').getPublicUrl(filePath);
+    const publicUrl = publicData.publicUrl;
+
+    const product = State.posts.find(p => p.__backendId === productId);
+    if (product) {
+      const updated = { ...product, pdf_id: publicUrl };
+      await window.dataSdk.update(updated);
+    }
+
+    this.currentPDFData = null;
+    return true;
+  },
+
+  downloadPDF(productId, productTitle) {
+    const product = State.posts.find(p => p.__backendId === productId);
+    if (!product || !product.pdf_id) return Component.Toast.show('Photo non disponible', 'error');
+    window.open(product.pdf_id, '_blank');
   }
-}
+};
 
-// ======================
-// PARTICLES
-// ======================
-function initParticles(){
-  const c = document.getElementById('particleContainer');
-  for(let i=0;i<15;i++){
-    const p=document.createElement('div');
-    p.className='particle';
-    p.style.left=Math.random()*100+'%';
-    p.style.bottom='0';
-    p.style.animationDelay=Math.random()*4+'s';
-    p.style.animationDuration=(3+Math.random()*3)+'s';
-    c.appendChild(p);
-  }
-}
+// =====================================================
+// PATCH ORDER — REMPLACE L'OBJET record DANS submitOrder()
+// =====================================================
+// const record = {
+//   order_id: 'order_' + Date.now(),
+//   order_product_id: product.__backendId,
+//   order_product_title: product.title || 'Produit',
+//   order_price: product.price || '',
+//   order_user: phone,
+//   order_name: name,
+//   order_birthdate: birthDate,
+//   order_city: city,
+//   order_status: 'pending',
+//   order_created_at: new Date().toISOString()
+// };
 
-// ======================
-// EVENTS
-// ======================
-document.getElementById('registerBtn').addEventListener('click', registerUser);
-document.getElementById('loginBtn').addEventListener('click', loginUser);
+// =====================================================
+// SQL SUPABASE — À COLLER DANS SQL EDITOR
+// =====================================================
+/*
+create table if not exists posts (
+  id bigint generated always as identity primary key,
+  __backendId text unique,
+  type text,
+  title text,
+  content text,
+  price text,
+  pdf_id text,
+  likes integer default 0,
+  published boolean default true,
+  created_at timestamptz default now()
+);
 
-// ======================
-// INIT APP
-// ======================
-async function initApp(){
-  await loadPosts();
-  await loadMissions();
-  initParticles();
-}
-initApp();
-</script>
-</body>
-</html>
+create table if not exists messages (
+  id bigint generated always as identity primary key,
+  __backendId text unique,
+  message_id text,
+  message_user text,
+  message_author text,
+  message_text text,
+  message_created_at timestamptz default now()
+);
+
+create table if not exists comments (
+  id bigint generated always as identity primary key,
+  __backendId text unique,
+  comment_id text,
+  comment_post_id text,
+  comment_user text,
+  comment_author text,
+  comment_text text,
+  comment_created_at timestamptz default now()
+);
+
+create table if not exists missions (
+  id bigint generated always as identity primary key,
+  __backendId text unique,
+  mission_id text,
+  mission_type text,
+  mission_user text,
+  mission_stars integer default 0,
+  mission_completed boolean default false,
+  mission_claimed boolean default false,
+  mission_created_at timestamptz default now()
+);
+
+create table if not exists orders (
+  id bigint generated always as identity primary key,
+  __backendId text unique,
+  order_id text,
+  order_product_id text,
+  order_product_title text,
+  order_price text,
+  order_user text,
+  order_name text,
+  order_birthdate text,
+  order_city text,
+  order_status text default 'pending',
+  order_created_at timestamptz default now()
+);
+
+create table if not exists users (
+  id bigint generated always as identity primary key,
+  user_id text,
+  username text,
+  phone text unique,
+  password text,
+  registered_at timestamptz default now(),
+  vip_emoji text default '👑',
+  vip_name text default 'PROFIL VIP'
+);
+
+create table if not exists likes (
+  id bigint generated always as identity primary key,
+  post_id text,
+  user_phone text,
+  created_at timestamptz default now()
+);
+
+create table if not exists pins (
+  id bigint generated always as identity primary key,
+  post_id text,
+  user_phone text,
+  created_at timestamptz default now()
+);
+
+alter table posts enable row level security;
+alter table messages enable row level security;
+alter table comments enable row level security;
+alter table missions enable row level security;
+alter table orders enable row level security;
+alter table users enable row level security;
+alter table likes enable row level security;
+alter table pins enable row level security;
+
+create policy "Allow all posts" on posts for all using (true) with check (true);
+create policy "Allow all messages" on messages for all using (true) with check (true);
+create policy "Allow all comments" on comments for all using (true) with check (true);
+create policy "Allow all missions" on missions for all using (true) with check (true);
+create policy "Allow all orders" on orders for all using (true) with check (true);
+create policy "Allow all users" on users for all using (true) with check (true);
+create policy "Allow all likes" on likes for all using (true) with check (true);
+create policy "Allow all pins" on pins for all using (true) with check (true);
+*/
+
+// =====================================================
+// STORAGE BUCKET À CRÉER DANS SUPABASE
+// =====================================================
+// Nom du bucket : product-media
+// Rendre le bucket public.
+
+// =====================================================
+// IMPORTANT
+// =====================================================
+// 1) Remplace seulement ton ancien initData() + patches ci-dessus
+// 2) Mets tes vraies clés Supabase
+// 3) Crée les tables + bucket
+// 4) Push sur GitHub
+// 5) Ton site sera partagé pour tous les visiteurs
