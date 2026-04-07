@@ -1,142 +1,163 @@
-// app.js - Version complète pour GitHub avec Supabase
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon App</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app">
+  <!-- Ton HTML actuel ici (modals, feed, orders, missions, etc.) -->
+</div>
 
-// ----------------------
-// CONFIG SUPABASE
-// ----------------------
-const SUPABASE_URL = ccmjvekzbiykpbkzewicconst SUPABASE_ANON_KEY = sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<script>
+  // ================= Supabase Setup =================
+  const SUPABASE_URL = 'https://ccmjvekzbiykpbkzewic.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ----------------------
-// STATE GLOBAL
-// ----------------------
-const State = {
-  posts: [],
-  messages: [],
-  comments: [],
-  missions: [],
-  orders: [],
-  userPins: {},
-  deleteTarget: null,
-  recordCount: 0,
-  mainMessage: null,
-  isAdmin: false
-};
-
-const defaultConfig = {
-  profile_name: 'Nom',
-  profile_bio: 'Bio',
-  empty_state_text: 'Aucun contenu.',
-  surface_color: '#222',
-  background_color: '#000',
-  primary_action_color: '#ff4444',
-  font_family: 'Outfit',
-  font_size: 14
-};
-
-// ----------------------
-// CONFIGURATION VISUELLE
-// ----------------------
-function applyConfig(config) {
-  const c = { ...defaultConfig, ...config };
-  const pn = document.getElementById('profileName');
-  if (pn) pn.textContent = c.profile_name;
-  const pb = document.getElementById('profileBio');
-  if (pb) pb.textContent = c.profile_bio;
-  const et = document.getElementById('emptyText');
-  if (et) et.textContent = c.empty_state_text;
-
-  document.body.style.background = `radial-gradient(ellipse at 50% 0%, ${c.surface_color} 0%, ${c.background_color} 70%)`;
-  document.documentElement.style.setProperty('--red', c.primary_action_color);
-  document.body.style.fontFamily = `${c.font_family}, Outfit, sans-serif`;
-
-  if (pn) pn.style.fontSize = `${c.font_size * 1.7}px`;
-  if (pb) pb.style.fontSize = `${c.font_size * 0.9}px`;
-}
-
-function initElement() {
-  const saved = localStorage.getItem('appConfig');
-  const config = saved ? JSON.parse(saved) : { ...defaultConfig };
-  applyConfig(config);
-}
-
-// ----------------------
-// UTILITAIRES
-// ----------------------
-function esc(str) {
-  if (!str) return '';
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
-
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
-}
-
-// ----------------------
-// CHARGEMENT DATA
-// ----------------------
-async function loadSharedData() {
-  const { data: posts } = await supabase.from('posts').select('*');
-  const { data: messages } = await supabase.from('messages').select('*');
-  const { data: comments } = await supabase.from('comments').select('*');
-  return { posts: posts || [], messages: messages || [], comments: comments || [] };
-}
-
-async function loadPersonalData(userId) {
-  const { data: missions } = await supabase.from('missions').select('*').eq('user_id', userId);
-  const { data: orders } = await supabase.from('orders').select('*').eq('user_id', userId);
-  return { missions: missions || [], orders: orders || [] };
-}
-
-async function processData() {
-  const user = localStorage.getItem('currentUser');
-  const userData = user ? JSON.parse(user) : null;
-  const shared = await loadSharedData();
-  const personal = userData ? await loadPersonalData(userData.id) : { missions: [], orders: [] };
-
-  State.posts = shared.posts;
-  State.messages = shared.messages;
-  State.comments = shared.comments;
-  State.missions = personal.missions;
-  State.orders = personal.orders;
-  State.mainMessage = shared.messages.find(m => m.message_id && m.message_id.startsWith('main_')) || null;
-}
-
-// ----------------------
-// INITIALISATION
-// ----------------------
-document.addEventListener('DOMContentLoaded', async () => {
-  initElement();
-  await processData();
-
-  // TODO: Appelle ici tes fonctions de rendu, Feed, Missions, Rewards, etc.
-  // ex: Component.Feed.render(State.posts);
-});
-
-// ----------------------
-// EXEMPLE DE CRUD AVEC SUPABASE
-// ----------------------
-const dataSdk = {
-  async create(table, record) {
-    const { data, error } = await supabase.from(table).insert([record]);
-    return { isOk: !error, error, data };
-  },
-  async update(table, id, record) {
-    const { data, error } = await supabase.from(table).update(record).eq('id', id);
-    return { isOk: !error, error, data };
-  },
-  async delete(table, id) {
-    const { data, error } = await supabase.from(table).delete().eq('id', id);
-    return { isOk: !error, error, data };
-  },
-  async select(table) {
-    const { data, error } = await supabase.from(table).select('*');
-    return { isOk: !error, error, data };
+  // ================= Utilitaires =================
+  function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
   }
-};
+
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "à l'instant";
+    if (m < 60) return `il y a ${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `il y a ${h}h`;
+    return `il y a ${Math.floor(h / 24)}j`;
+  }
+
+  // ================= State =================
+  const State = {
+    posts: [],
+    comments: [],
+    missions: [],
+    orders: [],
+    userPins: {},
+    currentUser: null,
+    mainMessage: null
+  };
+
+  // ================= Data SDK Supabase =================
+  window.dataSdk = {
+    async create(record) {
+      try {
+        let table = '';
+        if (record.type) table = 'posts';
+        else if (record.message_id) table = 'messages';
+        else if (record.mission_id) table = 'missions';
+        else if (record.comment_id) table = 'comments';
+        else if (record.order_id) table = 'orders';
+        if (!table) throw new Error('Record type unknown');
+
+        const { data, error } = await supabase
+          .from(table)
+          .insert([{ ...record }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return { isOk: true, data };
+      } catch (err) {
+        return { isOk: false, isError: true, error: err };
+      }
+    },
+
+    async update(record) {
+      try {
+        let table = '';
+        if (record.type) table = 'posts';
+        else if (record.message_id) table = 'messages';
+        else if (record.mission_id) table = 'missions';
+        else if (record.comment_id) table = 'comments';
+        else if (record.order_id) table = 'orders';
+        if (!table) throw new Error('Record type unknown');
+
+        const { data, error } = await supabase
+          .from(table)
+          .update(record)
+          .eq('__backendId', record.__backendId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return { isOk: true, data };
+      } catch (err) {
+        return { isOk: false, isError: true, error: err };
+      }
+    },
+
+    async delete(record) {
+      try {
+        let table = '';
+        if (record.type) table = 'posts';
+        else if (record.message_id) table = 'messages';
+        else if (record.mission_id) table = 'missions';
+        else if (record.comment_id) table = 'comments';
+        else if (record.order_id) table = 'orders';
+        if (!table) throw new Error('Record type unknown');
+
+        const { error } = await supabase
+          .from(table)
+          .delete()
+          .eq('__backendId', record.__backendId);
+
+        if (error) throw error;
+        return { isOk: true };
+      } catch (err) {
+        return { isOk: false, isError: true, error: err };
+      }
+    },
+
+    async init() {
+      try {
+        // Charger tous les posts, messages, commentaires
+        const { data: posts } = await supabase.from('posts').select('*');
+        const { data: messages } = await supabase.from('messages').select('*');
+        const { data: comments } = await supabase.from('comments').select('*');
+        const { data: missions } = await supabase.from('missions').select('*');
+        const { data: orders } = await supabase.from('orders').select('*');
+
+        State.posts = posts || [];
+        State.comments = comments || [];
+        State.missions = missions || [];
+        State.orders = orders || [];
+        State.messages = messages || [];
+
+        Component.Feed.render(State.posts);
+        Component.Missions.render(State.missions, State.currentUser?.phone || null);
+        return { isOk: true };
+      } catch (err) {
+        console.error('Supabase init error:', err);
+        return { isOk: false, isError: true, error: err };
+      }
+    }
+  };
+
+  // ================= Init =================
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Récupérer l'utilisateur si déjà connecté
+    const user = localStorage.getItem('currentUser');
+    if (user) State.currentUser = JSON.parse(user);
+
+    await window.dataSdk.init();
+
+    // Appeler tes autres initialisations (Particles, Modals, Auth, etc.)
+    if (Component.Particles) Component.Particles.init();
+    if (Component.UserAuth) Component.UserAuth.updateDisplay();
+    if (window.lucide) window.lucide.createIcons();
+  });
+
+</script>
+<script src="app-components.js"></script> <!-- ton code HTML/JS pour Feed, Orders, Missions, etc. -->
+</body>
+</html>
