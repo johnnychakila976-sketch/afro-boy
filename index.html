@@ -9,38 +9,37 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 body { background:#0a0a0a; color:white; font-family:Outfit,sans-serif; }
-.card { background:#111; padding:10px; border-radius:10px; margin-bottom:10px; }
 .particle { width:6px; height:6px; background:#ff5555; border-radius:50%; position:absolute; animation-name:particleAnim; animation-iteration-count:infinite; }
 @keyframes particleAnim { 0%{transform:translateY(0);} 100%{transform:translateY(-100px); opacity:0;} }
-button { cursor:pointer; }
 </style>
 </head>
-<body>
-<div class="p-4">
-  <h1 id="profileName" class="text-3xl mb-2">AFRO BOY</h1>
+<body class="relative overflow-x-hidden">
+
+<!-- PARTICLES -->
+<div id="particleContainer" class="absolute inset-0 pointer-events-none"></div>
+
+<div class="p-4 max-w-3xl mx-auto">
+  <h1 id="profileName" class="text-3xl font-bold mb-2">AFRO BOY</h1>
   <p id="profileBio" class="mb-4">Bienvenue dans ton espace</p>
 
-  <!-- Auth -->
-  <div id="authSection" class="mb-4">
-    <input id="phoneInput" placeholder="Numéro téléphone" class="p-1 text-black mr-2">
-    <input id="nameInput" placeholder="Nom" class="p-1 text-black mr-2">
-    <button id="registerBtn" class="bg-red-600 p-2 rounded mr-2">S'inscrire</button>
+  <!-- AUTH -->
+  <div id="authSection" class="mb-4 flex flex-wrap gap-2">
+    <input id="phoneInput" placeholder="Numéro téléphone" class="p-2 text-black rounded flex-1">
+    <input id="nameInput" placeholder="Nom" class="p-2 text-black rounded flex-1">
+    <button id="registerBtn" class="bg-red-600 p-2 rounded">S'inscrire</button>
     <button id="loginBtn" class="bg-green-600 p-2 rounded">Se connecter</button>
   </div>
 
-  <!-- Stars -->
-  <div id="userStarsDisplay" class="mb-4 text-yellow-400 font-bold">Étoiles: 0</div>
+  <!-- STARS -->
+  <div id="userStarsDisplay" class="mb-4 text-yellow-400 font-bold text-lg">Étoiles: 0</div>
 
-  <!-- Posts -->
-  <h2 class="text-xl mb-2">Posts</h2>
-  <div id="postsContainer" class="mb-6"></div>
+  <!-- POSTS -->
+  <h2 class="text-xl font-semibold mb-2">Posts</h2>
+  <div id="postsContainer" class="mb-6 space-y-2"></div>
 
-  <!-- Missions -->
-  <h2 class="text-xl mb-2">Missions</h2>
-  <div id="missionsContainer" class="mb-6"></div>
-
-  <!-- Particles -->
-  <div id="particleContainer"></div>
+  <!-- MISSIONS -->
+  <h2 class="text-xl font-semibold mb-2">Missions</h2>
+  <div id="missionsContainer" class="mb-6 space-y-2"></div>
 </div>
 
 <script>
@@ -52,7 +51,7 @@ const supabaseKey = 'sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // ======================
-// STATE GLOBAL
+// STATE
 // ======================
 const State = {
   posts: [],
@@ -67,9 +66,9 @@ async function registerUser() {
   const phone = document.getElementById('phoneInput').value;
   const name = document.getElementById('nameInput').value;
   if(!phone || !name){ alert('Remplis tous les champs'); return; }
-  const { data, error } = await supabase.from('users').insert([{ phone, name, stars:0 }]);
+  const { data, error } = await supabase.from('users').insert([{ phone, name, stars:0 }]).select().single();
   if(error){ alert(error.message); return; }
-  State.currentUser = data[0];
+  State.currentUser = data;
   updateUserStars();
   alert('Utilisateur enregistré ✅');
 }
@@ -105,11 +104,10 @@ function renderPosts(){
   State.posts.forEach(post=>{
     const liked = post.liked_by?.includes(State.currentUser?.phone) || false;
     container.innerHTML += `
-      <div class="card">
+      <div class="bg-gray-800 p-3 rounded-md shadow-md flex justify-between items-center">
         <p>${post.content}</p>
-        <div class="flex justify-between items-center mt-2">
-          <button style="color:${liked?'red':'#ccc'}" onclick="likePost('${post.id}')">❤️ ${post.likes||0}</button>
-          ${post.pinned ? '📌' : ''}
+        <div>
+          <button class="text-lg" style="color:${liked?'red':'#ccc'}" onclick="likePost('${post.id}')">❤️ ${post.likes||0}</button>
         </div>
       </div>
     `;
@@ -147,10 +145,12 @@ function renderMissions(){
   container.innerHTML = '';
   State.missions.forEach(m=>{
     const completed = m.completed_by?.includes(State.currentUser?.phone) || false;
-    container.innerHTML += `<div class="card flex justify-between items-center">
-      <span>${m.title} - ${m.points} points</span>
-      <button onclick="completeMission('${m.id}')">${completed ? '✅ Complété' : 'Compléter'}</button>
-    </div>`;
+    container.innerHTML += `
+      <div class="bg-gray-800 p-3 rounded-md shadow-md flex justify-between items-center">
+        <span>${m.title} - ${m.points} points</span>
+        <button class="ml-2 px-2 py-1 rounded bg-red-600" onclick="completeMission('${m.id}')">${completed ? '✅ Complété' : 'Compléter'}</button>
+      </div>
+    `;
   });
 }
 
@@ -163,7 +163,6 @@ async function completeMission(id){
     mission.completed_by = completed_by;
     const { data, error } = await supabase.from('missions').update({completed_by}).eq('id', id);
     if(error){ console.error(error); return; }
-    // Ajoute les points à l'utilisateur
     State.currentUser.stars += mission.points;
     await supabase.from('users').update({stars:State.currentUser.stars}).eq('phone', State.currentUser.phone);
     updateUserStars();
