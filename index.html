@@ -1,170 +1,1195 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon App Supabase</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  body{margin:0;font-family:'Outfit',sans-serif;background:radial-gradient(ellipse at 50% 0%, #1f1f1f 0%, #121212 70%);color:#fff}
-  .glass{backdrop-filter:blur(10px);background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;margin-bottom:12px}
-  button{cursor:pointer;border:none;border-radius:6px;background-color:var(--red,#ef4444);color:#fff;padding:6px 12px;font-weight:600}
-  input,textarea{padding:6px 10px;border-radius:6px;border:1px solid #555;background:#1e1e1e;color:#fff;font-family:'Outfit',sans-serif}
-  .spinner{border:2px solid rgba(255,255,255,0.2);border-top:2px solid #fff;border-radius:50%;width:16px;height:16px;animation:spin 0.8s linear infinite}
-  @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-  .particle{position:absolute;width:6px;height:6px;background:#ef4444;border-radius:50%;opacity:0.7;animation-name:rise;animation-iteration-count:infinite}
-  @keyframes rise{0%{transform:translateY(0);opacity:0.7}100%{transform:translateY(-300px);opacity:0}}
-  .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:1000}
-  .modal-overlay.active{display:flex}
-  .modal-content{background:#1e1e1e;padding:20px;border-radius:12px;max-width:400px;width:90%}
-</style>
-</head>
-<body>
-  <!-- Profil -->
-  <div class="glass" style="margin:12px;">
-    <h2 id="profileName">Nom du Profil</h2>
-    <p id="profileBio">Bio du profil</p>
-    <button id="userBtn">Profil</button>
-  </div>
-
-  <!-- Feed -->
-  <div id="feedContainer" style="margin:12px;"></div>
-  <div id="emptyState" class="glass" style="display:none;text-align:center;">Aucun contenu</div>
-
-  <!-- Modals -->
-  <div id="loginModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Connexion</h3>
-      <input type="text" id="loginEmail" placeholder="Email">
-      <input type="password" id="loginPassword" placeholder="Mot de passe">
-      <button id="loginSubmitBtn">Se connecter</button>
-      <p>Pas de compte ? <a href="#" id="switchRegisterBtn">S'inscrire</a></p>
+<!doctype html>
+<html lang="fr" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AFRO BOY - Histoires</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+:root { --red: #ff3737; --red-dark: #cc2020; --bg-deep: #0a0a0a; --bg-surface: #1a0a0a; --glass-bg: rgba(255,55,55,0.06); --glass-border: rgba(255,55,55,0.15); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Outfit', sans-serif; background: var(--bg-deep); color: #e8e0e0; overflow-x: hidden; }
+body { background: radial-gradient(ellipse at 50% 0%, var(--bg-surface) 0%, var(--bg-deep) 70%); box-sizing: border-box; }
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--red); border-radius: 4px; }
+.glass { background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 16px; }
+.glass-strong { background: rgba(255,55,55,0.1); border: 1px solid rgba(255,55,55,0.25); backdrop-filter: blur(30px); border-radius: 20px; }
+.avatar-container { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+.avatar-ring { position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(255,55,55,0.3); animation: pulse-ring 3s ease-in-out infinite; }
+.avatar-ring-2 { position: absolute; inset: -16px; border-radius: 50%; border: 1px solid rgba(255,55,55,0.15); animation: pulse-ring 3s ease-in-out infinite 1s; }
+.avatar-glow { position: absolute; inset: -4px; border-radius: 50%; background: radial-gradient(circle, rgba(255,55,55,0.4) 0%, transparent 70%); animation: glow-pulse 2s ease-in-out infinite; filter: blur(8px); }
+.avatar-img { width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--red); object-fit: cover; position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #2a0a0a, #1a0505); font-size: 48px; cursor: pointer; }
+.stat-num { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--red), #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.stat-item { text-align: center; position: relative; flex: 1; }
+.stat-item::after { content: ''; position: absolute; right: -1px; top: 20%; height: 60%; width: 1px; background: rgba(255,55,55,0.2); }
+.stat-item:last-child::after { display: none; }
+.btn-primary { background: linear-gradient(135deg, var(--red), var(--red-dark)); color: #fff; border: none; padding: 12px 24px; border-radius: 12px; font-family: 'Outfit'; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(255,55,55,0.3); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 25px rgba(255,55,55,0.4); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--red); border: 1px solid var(--glass-border); padding: 10px 20px; border-radius: 12px; font-family: 'Outfit'; font-weight: 500; font-size: 13px; cursor: pointer; transition: all 0.3s ease; }
+.btn-ghost:hover { background: rgba(255,55,55,0.1); border-color: var(--red); }
+.badge-live { background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.badge-approved { background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.5); color: #4ade80; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; }
+.compose-area { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,55,55,0.1); border-radius: 12px; padding: 14px; font-family: 'Outfit'; font-size: 14px; color: #e8e0e0; resize: none; outline: none; transition: border-color 0.3s, box-shadow 0.3s; min-height: 80px; }
+.compose-area:focus { border-color: var(--red); box-shadow: 0 0 20px rgba(255,55,55,0.1); }
+.compose-area::placeholder { color: #555; }
+.input-field { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,55,55,0.15); border-radius: 10px; padding: 10px 14px; font-family: 'Outfit'; font-size: 14px; color: #e8e0e0; outline: none; transition: border-color 0.3s; }
+.input-field:focus { border-color: var(--red); }
+.tab-btn { padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; border: 1px solid transparent; transition: all 0.3s ease; cursor: pointer; background: transparent; color: #888; }
+.tab-btn.active { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 0 20px rgba(255,55,55,0.3); }
+.tab-btn:not(.active):hover { background: rgba(255,55,55,0.1); color: #ccc; }
+.toast-container { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: 90%; max-width: 400px; }
+.toast { pointer-events: auto; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 500; animation: toast-in 0.4s cubic-bezier(0.16,1,0.3,1), toast-out 0.3s ease-in 2.5s forwards; display: flex; align-items: center; gap: 8px; }
+.toast-success { background: rgba(34,197,94,0.9); color: #fff; border: 1px solid rgba(34,197,94,0.5); }
+.toast-error { background: rgba(239,68,68,0.9); color: #fff; border: 1px solid rgba(239,68,68,0.5); }
+.toast-info { background: rgba(255,55,55,0.9); color: #fff; border: 1px solid rgba(255,55,55,0.5); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(-10px) scale(0.95); } }
+@keyframes pulse-ring { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes glow-pulse { 0%, 100% { opacity: 0.5; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; max-width: 90%; width: 100%; max-height: 90%; overflow: auto; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.post-card { animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1); transition: transform 0.3s ease; }
+.post-card:hover { transform: translateY(-2px); }
+@keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bounce-soft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes spin-wheel { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes shimmer { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes pulse-gentle { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes orbit1 { from { transform: rotate(0deg) translateX(75px) rotate(0deg); } to { transform: rotate(360deg) translateX(75px) rotate(-360deg); } }
+@keyframes orbit2 { from { transform: rotate(72deg) translateX(78px) rotate(72deg); } to { transform: rotate(432deg) translateX(78px) rotate(-288deg); } }
+@keyframes orbit3 { from { transform: rotate(144deg) translateX(80px) rotate(144deg); } to { transform: rotate(504deg) translateX(80px) rotate(-216deg); } }
+@keyframes orbit4 { from { transform: rotate(216deg) translateX(77px) rotate(216deg); } to { transform: rotate(576deg) translateX(77px) rotate(-144deg); } }
+@keyframes orbit5 { from { transform: rotate(288deg) translateX(79px) rotate(288deg); } to { transform: rotate(648deg) translateX(79px) rotate(-72deg); } }
+@keyframes planetGlow { 0%, 100% { box-shadow: 0 0 25px rgba(255,55,55,1), 0 0 50px rgba(255,100,100,0.6), inset 0 0 12px rgba(255,150,150,0.5); } 50% { box-shadow: 0 0 35px rgba(255,55,55,1), 0 0 65px rgba(255,100,100,0.8), inset 0 0 18px rgba(255,180,180,0.6); } }
+.orbital-bubble { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255,140,120,1), rgba(255,80,80,0.7), rgba(200,40,40,0.3)); box-shadow: 0 0 25px rgba(255,55,55,1), 0 0 12px rgba(255,120,100,0.7), inset -2px -2px 10px rgba(0,0,0,0.8), inset 2px 2px 10px rgba(255,200,180,0.4); filter: drop-shadow(0 3px 10px rgba(255,55,55,0.6)); animation: planetGlow 3s ease-in-out infinite; }
+  </style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="relative z-10 w-full h-full overflow-auto" style="max-width: 640px; margin: 0 auto; padding: 20px 16px 40px;">
+   <header class="mb-6 pt-4" style="border-bottom: 1px solid rgba(255,55,55,0.2); padding-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+     <div class="avatar-container" style="width: 80px; height: 80px; margin: 0;">
+      <div class="avatar-img" onclick="Component.Admin.checkAccess()" style="width: 80px; height: 80px; font-size: 40px;">
+       🧠
+      </div>
+      <div id="adminBadge" class="badge-live" style="position: absolute; top: -8px; right: -8px; padding: 2px 6px; font-size: 9px; display: none;">
+       0
+      </div>
+     </div>
+     <div>
+      <h1 id="profileName" style="font-size: 24px; font-weight: 800; margin: 0; color: #fff;">@afroboy</h1>
+      <p id="profileBio" style="color: #888; font-size: 13px; margin: 4px 0 0; color: #888;">Developer &amp; Open Source Enthusiast 🔥</p>
+     </div>
     </div>
-  </div>
-  <div id="registerModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Inscription</h3>
-      <input type="text" id="registerName" placeholder="Nom">
-      <input type="text" id="registerBio" placeholder="Bio">
-      <input type="text" id="registerEmail" placeholder="Email">
-      <input type="password" id="registerPassword" placeholder="Mot de passe">
-      <button id="registerSubmitBtn">S'inscrire</button>
-      <p>Déjà un compte ? <a href="#" id="switchLoginBtn">Se connecter</a></p>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+     <div style="flex: 1; min-width: 100px; padding: 12px; background: rgba(255,55,55,0.08); border: 1px solid rgba(255,55,55,0.15); border-radius: 10px; text-align: center;">
+      <div class="stat-num" id="statArticles" style="font-size: 20px;">
+       0
+      </div>
+      <div class="stat-label">
+       Repositories
+      </div>
+     </div>
+     <div style="flex: 1; min-width: 100px; padding: 12px; background: rgba(255,55,55,0.08); border: 1px solid rgba(255,55,55,0.15); border-radius: 10px; text-align: center;">
+      <div class="stat-num" id="statLikes" style="font-size: 20px;">
+       0
+      </div>
+      <div class="stat-label">
+       ⭐ Stars
+      </div>
+     </div>
+     <div style="flex: 1; min-width: 100px; padding: 12px; background: rgba(255,55,55,0.08); border: 1px solid rgba(255,55,55,0.15); border-radius: 10px; text-align: center;">
+      <div class="stat-num" id="statMembers" style="font-size: 20px;">
+       100
+      </div>
+      <div class="stat-label">
+       Followers
+      </div>
+     </div>
     </div>
+   </header>
+   <div class="glass p-3 mb-4 flex items-center justify-between cursor-pointer" style="background: linear-gradient(135deg, rgba(255,55,55,0.15), rgba(255,100,100,0.1)); border: 1px solid rgba(255,55,55,0.3); animation: pulse-gentle 2s ease-in-out infinite;" onclick="Component.Toast.show('📌 Pinned Repository!', 'info')">
+    <div class="flex items-center gap-2"><span style="font-size: 16px; animation: bounce-soft 1s ease-in-out infinite;">📌</span> <span class="text-xs font-semibold" style="color: #ff9999;">Pinned Repository</span>
+    </div><i data-lucide="arrow-right" style="width: 14px; height: 14px; color: #ff9999;"></i>
+   </div>
+   <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+    <div id="shopBanner" class="glass flex-1 p-3 flex items-center justify-between cursor-pointer" style="background: rgba(255,55,55,0.1); border: 1px solid rgba(255,55,55,0.25);" onclick="Component.Shop.toggle()">
+     <div class="flex items-center gap-2"><span class="badge-live" style="padding: 3px 8px; font-size: 9px;">📚 TRENDING</span> <span class="text-sm font-semibold">Top Repositories</span>
+     </div><i data-lucide="chevron-down" style="width: 18px; height: 18px; transition: transform 0.3s;" id="shopChevron"></i>
+    </div><button id="missionsBtn" class="btn-primary text-xs" style="padding: 10px 16px; border-radius: 50px; white-space: nowrap; position: relative;" onclick="Component.Missions.openModal()">🔗 Issues<span style="position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">2</span></button>
+   </div>
+   <div id="shopContainer" style="display: none; margin-bottom: 16px;">
+    <div class="glass p-4" id="shopProducts">
+     <div class="text-center py-8" style="color: #666;">
+      <div style="font-size: 36px; margin-bottom: 8px;">
+       📦
+      </div>
+      <p class="text-sm">No repositories</p>
+     </div>
+    </div>
+   </div>
+   <div class="glass p-4 mb-4" style="background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,55,55,0.08)); border: 1px solid rgba(255,215,0,0.2); position: relative; overflow: hidden;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #ffd700, transparent); animation: shimmer 2s ease-in-out infinite;"></div>
+    <div class="flex justify-between items-start mb-2">
+     <div>
+      <div class="font-bold" style="color: #ffd700; font-size: 14px;">
+       ⚡ Offres Limitées
+      </div>
+      <div class="text-xs mt-1" style="color: #ff9999;">
+       Jusqu'à 70% de réduction
+      </div>
+     </div>
+     <div class="text-xs font-semibold" style="background: rgba(255,215,0,0.2); color: #ffd700; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">
+      🔥 Flash sale
+     </div>
+    </div><button class="btn-primary w-full text-xs" style="padding: 8px; margin-top: 8px; background: linear-gradient(135deg, #ffd700, #ffb700); color: #000; font-weight: 700;" onclick="Component.Offers.openModal()">👑 Je profite</button>
+   </div>
+   <section id="feedSection">
+    <div id="feedContainer"></div>
+    <div id="emptyState" class="glass text-center py-10 px-6" style="position: relative;">
+     <div style="font-size: 48px; margin-bottom: 3px;">
+      📖
+     </div>
+     <p class="font-semibold" style="color:#888;">Aucune story pour le moment...</p>
+     <p class="text-xs mt-1" style="color:#555;">Raconte ton histoire! 📝</p>
+    </div>
+   </section>
+   <div class="glass p-3 mb-4" style="background: rgba(255,55,55,0.06); border: 1px solid rgba(255,55,55,0.15); border-radius: 12px; font-size: 12px;">
+    <div class="flex items-center gap-2 mb-2" style="color: #bbb;"><span style="font-size: 14px;">📊</span> <span>Recent Activity</span>
+    </div>
+    <div class="flex items-center gap-2" style="color: #bbb;"><span style="font-size: 14px; animation: pulse-gentle 1s ease-in-out infinite;">🔥</span> <span>2.4k developers online</span>
+    </div>
+   </div><button id="messageBtn" class="btn-primary text-xs" style="position: fixed; bottom: 24px; right: 24px; padding: 10px 16px; border-radius: 50px; z-index: 100; max-width: 140px;" onclick="Component.Modal.open('deposModal')">💬 Pull Requests</button> <button id="userBtn" class="btn-primary text-xs" style="position: fixed; bottom: 24px; left: 24px; padding: 10px 16px; border-radius: 50px; z-index: 100; max-width: 140px;" onclick="Component.UserAuth.openModal()">👤 Profile</button> <button id="wheelBtn" class="btn-primary text-xs" style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px; border-radius: 50%; width: 48px; height: 48px; z-index: 100; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 0 20px rgba(255,55,55,0.5);" onclick="Component.Lucky.spin()" title="Bonus">🎁</button>
+   <div id="storyModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('storyModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">📝 Create Repository</h2><button onclick="Component.Modal.close('storyModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div class="glass p-3 mb-4" style="background: rgba(255,55,55,0.08); border: 1px solid rgba(255,55,55,0.15); border-radius: 10px;">
+       <div class="text-xs font-semibold" style="color: #888;">
+        ⚠️ Admin Only
+       </div>
+       <div class="text-xs mt-2" style="color: #999;">
+        Only administrators can create public repositories.
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="adminLoginModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('adminLoginModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">🔐 Admin Login</h2><button onclick="Component.Modal.close('adminLoginModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div><input type="password" id="adminPassword" class="input-field mb-3" placeholder="Password" onkeypress="if(event.key==='Enter') Component.Admin.login()"> <button class="btn-primary w-full mb-2" onclick="Component.Admin.login()">Sign in</button> <button class="btn-ghost w-full text-xs" onclick="Component.Modal.close('adminLoginModal')">Cancel</button>
+     </div>
+    </div>
+   </div>
+   <div id="adminProfileModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('adminProfileModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">🔧 Admin Dashboard</h2><button onclick="Component.Modal.close('adminProfileModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div class="glass p-3 mb-4" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);">
+       <div class="text-sm font-semibold" style="color: #4ade80;">
+        ✅ Logged in as Admin
+       </div>
+       <div class="text-xs mt-2" style="color: #888;">
+        You can manage content
+       </div>
+      </div>
+      <div id="adminStats" class="space-y-2 mb-4">
+       <div class="glass p-2 text-xs" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,55,55,0.08); border: 1px solid rgba(255,55,55,0.15); border-radius: 10px;"><span style="color: #888;">Pending Repositories:</span> <span style="color: var(--red); font-weight: 600;" id="pendingCount">0</span>
+       </div>
+       <div class="glass p-2 text-xs" style="display: flex; justify-content: space-between; align-items: center; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.15); border-radius: 10px;"><span style="color: #888;">Published Repositories:</span> <span style="color: #4ade80; font-weight: 600;" id="approvedCount">0</span>
+       </div>
+       <div class="glass p-2 text-xs" style="display: flex; justify-content: space-between; align-items: center; background: rgba(76,217,100,0.08); border: 1px solid rgba(76,217,100,0.15); border-radius: 10px;"><span style="color: #888;">Registered Developers:</span> <span style="color: #4ade80; font-weight: 600;" id="registeredClientsCount">0</span>
+       </div>
+      </div>
+      <div class="flex gap-2 flex-col">
+       <button class="btn-primary text-xs" style="padding: 8px;" onclick="Component.Modal.close('adminProfileModal'); Component.Modal.open('adminModal');">📝 Publish</button> <button class="btn-primary text-xs" style="padding: 8px;" onclick="Component.Modal.close('adminProfileModal'); Component.Modal.open('adminPromoModal');">🏷️ Labels</button> <button class="btn-primary text-xs" style="padding: 8px;" onclick="Component.Modal.close('adminProfileModal'); Component.Modal.open('adminAffiliateModal');">🤝 Collaborators</button> <button class="btn-ghost w-full text-xs" style="padding: 8px;" onclick="Component.Admin.logout()">Sign out</button>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="adminModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('adminModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">📝 Manage Repositories</h2><button onclick="Component.Modal.close('adminModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div class="flex gap-2 mb-4" style="border-bottom: 1px solid rgba(255,55,55,0.1); padding-bottom: 12px;">
+       <button class="tab-btn active" onclick="Component.Admin.switchTab('pending')">📨 Pending</button> <button class="tab-btn" onclick="Component.Admin.switchTab('create')">➕ Create</button>
+      </div>
+      <div id="pendingTab" style="max-height: 400px; overflow-y: auto;"></div>
+      <div id="createTab" style="display: none; max-height: 400px; overflow-y: auto;">
+       <div class="space-y-3">
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">TYPE</label> <select id="adminType" class="input-field" onchange="document.getElementById('priceContainer').style.display = this.value === 'produit' ? 'block' : 'none';"> <option value="article">📦 Repository</option> <option value="inspiration">💡 Snippet</option> <option value="question">❓ Question</option> <option value="produit">🛠️ Tool</option> </select>
+        </div>
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">TITLE (OPTIONAL)</label> <input type="text" id="adminTitle" class="input-field" placeholder="Repository name">
+        </div>
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">DESCRIPTION</label> <textarea id="adminContent" class="compose-area" placeholder="Write description..." style="min-height: 80px;"></textarea>
+        </div>
+        <div id="priceContainer" style="display: none;">
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">LANGUAGE</label> <input type="text" id="adminPrice" class="input-field" placeholder="Ex: Python, JavaScript">
+        </div>
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">🏷️ TAGS</label>
+         <div id="adminEmojiContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; padding: 12px; background: rgba(255,55,55,0.04); border: 1px solid rgba(255,55,55,0.15); border-radius: 12px;"><button type="button" onclick="Component.Admin.addEmoji('javascript')" style="background: rgba(255,55,55,0.15); border: 1px solid rgba(255,55,55,0.3); padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,55,55,0.25)'" onmouseout="this.style.background='rgba(255,55,55,0.15)'">javascript</button> <button type="button" onclick="Component.Admin.addEmoji('python')" style="background: rgba(255,55,55,0.15); border: 1px solid rgba(255,55,55,0.3); padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,55,55,0.25)'" onmouseout="this.style.background='rgba(255,55,55,0.15)'">python</button> <button type="button" onclick="Component.Admin.addEmoji('open-source')" style="background: rgba(255,55,55,0.15); border: 1px solid rgba(255,55,55,0.3); padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,55,55,0.25)'" onmouseout="this.style.background='rgba(255,55,55,0.15)'">open-source</button> <button type="button" onclick="Component.Admin.addEmoji('web')" style="background: rgba(255,55,55,0.15); border: 1px solid rgba(255,55,55,0.3); padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,55,55,0.25)'" onmouseout="this.style.background='rgba(255,55,55,0.15)'">web</button> <button type="button" onclick="Component.Admin.addEmoji('api')" style="background: rgba(255,55,55,0.15); border: 1px solid rgba(255,55,55,0.3); padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,55,55,0.25)'" onmouseout="this.style.background='rgba(255,55,55,0.15)'">api</button> <button type="button" id="addMoreEmojisBtn" onclick="Component.Admin.showCustomEmojiInput()" style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.4); padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 700; color: #ffd700;">Ajoute</button>
+         </div>
+         <div id="adminEmojiPreview" style="display: none; margin-top: 12px; position: relative;">
+          <div style="background: rgba(255,55,55,0.08); border: 1px solid rgba(255,55,55,0.15); border-radius: 8px; padding: 12px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 8px;">
+           <div id="adminEmojiList" style="display: flex; flex-wrap: wrap; gap: 8px; flex: 1;"></div>
+          </div>
+         </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,55,55,0.08); padding: 10px; border-radius: 8px;">
+         <input type="checkbox" id="adminAutoPublish" style="width: 18px; height: 18px; cursor: pointer;"> <label for="adminAutoPublish" style="font-size: 13px; color: #bbb; cursor: pointer;">Publier automatiquement</label>
+        </div><button class="btn-primary w-full" onclick="Component.Admin.publishFromAdmin()">🚀 Publier</button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="adminPromoModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('adminPromoModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">🎟️ Codes de Réduction</h2><button onclick="Component.Modal.close('adminPromoModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div class="space-y-3 mb-4">
+       <div>
+        <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">CODE</label> <input type="text" id="adminPromoCode" class="input-field" placeholder="Ex: AFROBOY50">
+       </div>
+       <div>
+        <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">RÉDUCTION</label> <input type="text" id="adminPromoValue" class="input-field" placeholder="Ex: -50%">
+       </div><button class="btn-primary w-full" onclick="Component.Admin.addPromoCode()">➕ Ajouter</button>
+      </div>
+      <div id="adminPromoList" style="max-height: 300px; overflow-y: auto;"></div>
+     </div>
+    </div>
+   </div>
+   <div id="adminAffiliateModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('adminAffiliateModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">💼 Affiliés</h2><button onclick="Component.Modal.close('adminAffiliateModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div class="flex gap-2 mb-4" style="border-bottom: 1px solid rgba(255,55,55,0.1); padding-bottom: 12px;">
+       <button class="tab-btn active" onclick="Component.Admin.switchAffiliateTab('pending')">📨 En attente</button> <button class="tab-btn" onclick="Component.Admin.switchAffiliateTab('approved')">✅ Approuvés</button>
+      </div>
+      <div id="pendingAffiliateTab" style="max-height: 400px; overflow-y: auto;"></div>
+      <div id="approvedAffiliateTab" style="display: none; max-height: 400px; overflow-y: auto;"></div>
+     </div>
+    </div>
+   </div>
+   <div id="userAuthModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('userAuthModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">👤 Compte</h2><button onclick="Component.Modal.close('userAuthModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div id="userStatusDisplay" style="display:none;">
+       <div class="glass p-3 mb-4" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:12px;">
+        <div class="text-sm font-semibold" style="color:#4ade80;">
+         ✅ Connecté
+        </div>
+        <div class="text-xs mt-2" style="color:#888;"><strong style="color:#ccc;" id="userDisplayPhone"></strong>
+        </div>
+        <div class="text-xs mt-1" style="color:#666;" id="userDisplayDate"></div>
+       </div>
+       <div class="glass p-3 mb-4" style="background:rgba(255,55,55,0.08);border:1px solid rgba(255,55,55,0.15);border-radius:12px;">
+        <div class="text-xs font-semibold" style="color:#888;">
+         PLACES RESTANTES
+        </div>
+        <div class="text-sm mt-2">
+         <span style="color:var(--red);font-weight:700;font-size:18px;" id="memberCountDisplay">100</span><span style="color:#888;font-size:12px;">/100</span>
+        </div>
+       </div>
+       <div style="margin-bottom: 16px;">
+        <div style="color:#fff;font-weight:700;font-size:13px;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+         📊 Tes Statistiques
+        </div>
+        <div class="glass p-3 mb-3" style="background:rgba(255,55,55,0.06);border:1px solid rgba(255,55,55,0.15);">
+         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="color:#888;font-size:12px;">🔥 MP FLY envoyés</span> <span style="color:var(--red);font-weight:700;font-size:16px;" id="userMPCount">0</span>
+         </div>
+        </div>
+        <div class="glass p-3 mb-3" style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.15);">
+         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="color:#888;font-size:12px;">🎁 Offres acceptées</span> <span style="color:#ffd700;font-weight:700;font-size:16px;" id="userOffersCount">0</span>
+         </div>
+        </div>
+        <div class="glass p-3 mb-3" style="background:rgba(76,217,100,0.08);border:1px solid rgba(76,217,100,0.15);">
+         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="color:#888;font-size:12px;">🛍️ Commandes effectuées</span> <span style="color:#4ade80;font-weight:700;font-size:16px;" id="userOrdersCount">0</span>
+         </div>
+        </div>
+       </div><button id="promoBtn" class="btn-primary text-xs w-full mb-2" style="padding: 10px;" onclick="Component.Promo.openPromoModal()">👑 Voir Promos</button> <button class="btn-ghost w-full text-xs" onclick="Component.UserAuth.logout()">Se déconnecter</button>
+      </div>
+      <div id="authForms">
+       <div id="registerForm" class="space-y-3">
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">TÉLÉPHONE</label> <input type="tel" id="regPhone" class="input-field" placeholder="+33 6 XX XX XX XX">
+        </div>
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">USERNAME</label> <input type="text" id="regUsername" class="input-field" placeholder="Ton pseudo...">
+        </div><button type="button" class="btn-primary w-full" id="registerSubmitBtn">✓ S'inscrire</button> <button type="button" class="btn-ghost w-full text-xs" id="switchLoginBtn">Déjà inscrit ?</button>
+       </div>
+       <div id="loginForm" class="space-y-3" style="display:none;">
+        <div>
+         <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">TÉLÉPHONE</label> <input type="tel" id="loginPhone" class="input-field" placeholder="+33 6 XX XX XX XX XX">
+        </div><button type="button" class="btn-primary w-full" id="loginSubmitBtn">Se connecter</button> <button type="button" class="btn-ghost w-full text-xs" id="switchRegisterBtn">Pas inscrit ?</button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="promoModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('promoModal')">
+    <div class="modal-content glass glass-strong" style="max-height: 90%;">
+     <div class="p-4 h-full flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">👑 Codes de Réduction</h2><button onclick="Component.Modal.close('promoModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div id="promoCodesList" style="flex: 1; overflow-y: auto;"></div>
+     </div>
+    </div>
+   </div>
+   <div id="deposModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('deposModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">💌 Messages</h2><button id="deposPromoBtn" class="btn-primary text-xs" style="padding: 6px 12px; white-space: nowrap;" onclick="Component.Modal.close('deposModal'); Component.Promo.openPromoModal()">👑 Promos</button> <button onclick="Component.Modal.close('deposModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div id="messagesList" style="max-height: 300px; overflow-y: auto; margin-bottom: 12px;"></div>
+      <div class="space-y-2">
+       <textarea id="messageInput" class="compose-area" style="min-height: 60px;" placeholder="Écris ton message..."></textarea> <button class="btn-primary w-full" onclick="Component.Depose.sendMessage()">📨 Envoyer</button>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="missionsModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('missionsModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">📮 Missions</h2><button onclick="Component.Modal.close('missionsModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div id="missionsList" class="space-y-3"></div>
+     </div>
+    </div>
+   </div>
+   <div id="confirmModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('confirmModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <h3 class="font-bold mb-3" style="color:#fff;">Supprimer ?</h3>
+      <p class="text-sm mb-4" style="color:#999;">Action irréversible.</p>
+      <div class="flex gap-2">
+       <button class="btn-ghost flex-1" onclick="Component.Modal.close('confirmModal')">Annuler</button> <button class="btn-primary flex-1" style="background:linear-gradient(135deg, #ef4444, #dc2626);" onclick="Component.Feed.confirmDelete()">Supprimer</button>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div id="offerFormModal" class="modal-overlay" onclick="if(event.target === this) Component.Modal.close('offerFormModal')">
+    <div class="modal-content glass glass-strong">
+     <div class="p-4">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-lg font-bold">📋 Finaliser ma commande</h2><button onclick="Component.Modal.close('offerFormModal')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+      </div>
+      <div class="space-y-3">
+       <div>
+        <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">NOM COMPLET</label> <input type="text" id="offerFullName" class="input-field" placeholder="Ton nom complet">
+       </div>
+       <div>
+        <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">ADRESSE E-MAIL</label> <input type="email" id="offerEmail" class="input-field" placeholder="ton@email.com">
+       </div>
+       <div>
+        <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">VILLE</label> <input type="text" id="offerCity" class="input-field" placeholder="Ta ville">
+       </div>
+       <div>
+        <label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">CODE POSTAL</label> <input type="text" id="offerZipCode" class="input-field" placeholder="Code postal">
+       </div><button class="btn-primary w-full" style="padding: 12px; font-weight: 700;" onclick="Component.Offers.submitForm()">✓ Valider ma commande</button>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="toast-container" id="toastContainer"></div>
   </div>
+  <script>
+    let appData = {
+      articles: [],
+      users: [],
+      messages: [],
+      currentUser: null,
+      adminLoggedIn: false,
+      adminPassword: '0639019389',
+      promoCodes: [],
+      memberCount: 100,
+      affiliateRequests: [],
+      storageKey: 'afroboy_membercount',
+      userMPCount: 0,
+      userOffersCount: 0,
+      userOrdersCount: 0
+    };
 
-  <!-- Particles -->
-  <div id="particleContainer" style="position:fixed;bottom:0;left:0;width:100%;height:100%;pointer-events:none;"></div>
+    window.selectedEmojis = [];
 
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-const SUPABASE_URL = 'https://ccmjvekzbiykpbkzewic.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_ispkTp-HmjtkM3Q6O1d39A_zLyOFOIC';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const savedMemberCount = localStorage.getItem(appData.storageKey);
+    if (savedMemberCount) {
+      appData.memberCount = parseInt(savedMemberCount, 10);
+    } else {
+      localStorage.setItem(appData.storageKey, appData.memberCount);
+    }
 
-const State = { user:null, posts:[], comments:[], missions:[], rewards:[] };
+    lucide.createIcons();
 
-// ===== Config Design =====
-function applyConfig(){
-  document.body.style.background='radial-gradient(ellipse at 50% 0%, #1f1f1f 0%, #121212 70%)';
-  document.documentElement.style.setProperty('--red','#ef4444');
-}
+    const dataHandler = {
+      onDataChanged(data) {
+        appData.articles = data || [];
+        Component.Feed.updateStats();
+        Component.Feed.render();
+        Component.Shop.render();
+      }
+    };
 
-// ===== Particles =====
-function initParticles(){
-  const c=document.getElementById('particleContainer');
-  for(let i=0;i<20;i++){
-    const p=document.createElement('div');
-    p.className='particle';
-    p.style.left=Math.random()*100+'%';
-    p.style.animationDelay=Math.random()*4+'s';
-    p.style.animationDuration=(3+Math.random()*3)+'s';
-    c.appendChild(p);
-  }
-}
+    (async () => {
+      const result = await window.dataSdk.init(dataHandler);
+      if (!result.isOk) console.error('Data SDK init failed');
+    })();
 
-// ===== Auth =====
-async function login(email,password){
-  const { data, error } = await supabase.auth.signInWithPassword({ email,password });
-  if(error){alert(error.message);return;}
-  State.user=data.user;
-  loadData();
-  closeModal('loginModal');
-}
+    const Component = {
+      Modal: {
+        open: (id) => document.getElementById(id).classList.add('active'),
+        close: (id) => document.getElementById(id).classList.remove('active')
+      },
 
-async function register(name,bio,email,password){
-  const { data, error } = await supabase.auth.signUp({ email,password });
-  if(error){alert(error.message);return;}
-  await supabase.from('users').insert([{id:data.user.id,name,bio,email}]);
-  State.user=data.user;
-  loadData();
-  closeModal('registerModal');
-}
+      Toast: {
+        show: (msg, type = 'info') => {
+          const c = document.getElementById('toastContainer');
+          const t = document.createElement('div');
+          t.className = `toast toast-${type}`;
+          t.textContent = msg;
+          c.appendChild(t);
+          setTimeout(() => t.remove(), 3000);
+        }
+      },
 
-// ===== Load Data =====
-async function loadData(){
-  if(!State.user) return;
-  const { data: posts } = await supabase.from('posts').select('*').order('created_at',{ascending:false});
-  const { data: comments } = await supabase.from('comments').select('*');
-  const { data: missions } = await supabase.from('missions').select('*');
-  const { data: rewards } = await supabase.from('rewards').select('*');
+      Feed: {
+        deleteId: null,
+        render: () => {
+          const container = document.getElementById('feedContainer');
+          const emptyState = document.getElementById('emptyState');
+          const approved = appData.articles.filter(a => a.status === 'approved');
 
-  State.posts=posts||[];
-  State.comments=comments||[];
-  State.missions=missions||[];
-  State.rewards=rewards||[];
+          if (approved.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+          }
+          emptyState.style.display = 'none';
+          container.innerHTML = approved.map(a => `
+            <div class="post-card glass p-4 mb-4" style="background: rgba(255,55,55,0.06);">
+              <div class="flex justify-between items-start mb-2">
+                <div><div class="font-bold text-sm">${a.author}</div><div class="text-xs" style="color: #888;">${new Date(a.timestamp).toLocaleDateString()}</div></div>
+                <span class="badge-approved">✅</span>
+              </div>
+              ${a.title ? `<h3 class="font-bold mb-2" style="color: #ff6b6b;">${a.title}</h3>` : ''}
+              <p style="color: #bbb; font-size: 14px; margin-bottom: 12px;">${a.content}</p>
+              ${a.emojis ? `<div style="font-size: 36px; margin-bottom: 12px; letter-spacing: 4px; word-break: break-word;">${a.emojis}</div>` : ''}
+              ${a.price ? `<div style="color: #ffd700; font-weight: bold; margin-bottom: 8px;">💰 ${a.price}</div>` : ''}
+              <div class="flex gap-2">
+                <button onclick="Component.Feed.like('${a.__backendId}')" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 12px;">❤️ ${a.likes || 0}</button>
+                ${appData.adminLoggedIn ? `<button onclick="Component.Feed.delete('${a.__backendId}')" style="background: none; border: none; color: #999; cursor: pointer;">🗑️</button>` : ''}
+              </div>
+            </div>
+          `).join('');
+        },
+        updateStats: () => {
+          document.getElementById('statArticles').textContent = appData.articles.filter(a => a.status === 'approved').length;
+          document.getElementById('statLikes').textContent = appData.articles.reduce((s, a) => s + (a.likes || 0), 0);
+          document.getElementById('statMembers').textContent = appData.memberCount;
+        },
+        like: async (id) => {
+          const a = appData.articles.find(x => x.__backendId === id);
+          if (a) {
+            a.likes = (a.likes || 0) + 1;
+            await window.dataSdk.update(a);
+            Component.Feed.render();
+            Component.Toast.show('❤️ Like!', 'success');
+          }
+        },
+        delete: (id) => {
+          Component.Feed.deleteId = id;
+          Component.Modal.open('confirmModal');
+        },
+        confirmDelete: async () => {
+          if (Component.Feed.deleteId) {
+            const a = appData.articles.find(x => x.__backendId === Component.Feed.deleteId);
+            if (a) await window.dataSdk.delete(a);
+            Component.Modal.close('confirmModal');
+          }
+        }
+      },
 
-  renderProfile();
-  renderFeed();
-}
+      UserAuth: {
+        openModal: () => {
+          if (appData.currentUser) Component.UserAuth.showStatus();
+          else {
+            document.getElementById('authForms').style.display = 'block';
+            document.getElementById('userStatusDisplay').style.display = 'none';
+          }
+          Component.Modal.open('userAuthModal');
+        },
+        showStatus: () => {
+          if (appData.currentUser) {
+            document.getElementById('userStatusDisplay').style.display = 'block';
+            document.getElementById('authForms').style.display = 'none';
+            document.getElementById('userDisplayPhone').textContent = appData.currentUser.phone;
+            document.getElementById('userDisplayDate').textContent = 'Inscrit';
+            document.getElementById('memberCountDisplay').textContent = appData.memberCount;
+            document.getElementById('userMPCount').textContent = appData.userMPCount;
+            document.getElementById('userOffersCount').textContent = appData.userOffersCount;
+            document.getElementById('userOrdersCount').textContent = appData.userOrdersCount;
+          }
+        },
+        logout: () => {
+          appData.currentUser = null;
+          Component.UserAuth.openModal();
+        }
+      },
 
-// ===== Render Profile =====
-async function renderProfile(){
-  if(!State.user) return;
-  const { data:userData } = await supabase.from('users').select('*').eq('id',State.user.id).single();
-  if(!userData) return;
-  document.getElementById('profileName').textContent=userData.name;
-  document.getElementById('profileBio').textContent=userData.bio;
-}
+      Admin: {
+        checkAccess: () => {
+          if (!appData.adminLoggedIn) Component.Modal.open('adminLoginModal');
+          else { Component.Admin.updateStats(); Component.Modal.open('adminProfileModal'); }
+        },
+        login: () => {
+          const pwd = document.getElementById('adminPassword').value;
+          if (pwd === '0639019389') {
+            appData.adminLoggedIn = true;
+            document.getElementById('adminBadge').style.display = 'block';
+            Component.Modal.close('adminLoginModal');
+            Component.Admin.updateStats();
+            Component.Modal.open('adminProfileModal');
+            document.getElementById('adminPassword').value = '';
+            Component.Toast.show('✅ Admin connecté!', 'success');
+          } else Component.Toast.show('❌ Mot de passe incorrect!', 'error');
+        },
+        logout: () => {
+          appData.adminLoggedIn = false;
+          document.getElementById('adminBadge').style.display = 'none';
+          Component.Modal.close('adminProfileModal');
+          Component.Toast.show('✅ Déconnecté', 'success');
+        },
+        updateStats: () => {
+          document.getElementById('pendingCount').textContent = appData.articles.filter(a => a.status === 'pending').length;
+          document.getElementById('approvedCount').textContent = appData.articles.filter(a => a.status === 'approved').length;
+          document.getElementById('registeredClientsCount').textContent = appData.users.length;
+        },
+        switchTab: (tab) => {
+          document.querySelectorAll('#adminModal .tab-btn').forEach(b => b.classList.remove('active'));
+          const btns = document.querySelectorAll('#adminModal .tab-btn');
+          if (tab === 'pending') {
+            btns[0].classList.add('active');
+            document.getElementById('pendingTab').style.display = 'block';
+            document.getElementById('createTab').style.display = 'none';
+            Component.Admin.renderPending();
+          } else {
+            btns[1].classList.add('active');
+            document.getElementById('pendingTab').style.display = 'none';
+            document.getElementById('createTab').style.display = 'block';
+          }
+        },
+        renderPending: () => {
+          const tab = document.getElementById('pendingTab');
+          const pending = appData.articles.filter(a => a.status === 'pending');
+          if (pending.length === 0) { tab.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Aucun en attente</div>'; return; }
+          tab.innerHTML = pending.map(a => `
+            <div class="glass p-3 mb-3" style="background: rgba(255,215,0,0.08);">
+              <p style="color: #bbb; font-size: 12px; margin-bottom: 10px;">${a.content}</p>
+              <div class="flex gap-2">
+                <button class="btn-primary text-xs flex-1" onclick="Component.Admin.approve('${a.__backendId}')">✅ Approuver</button>
+                <button class="btn-ghost text-xs flex-1" onclick="Component.Admin.reject('${a.__backendId}')">❌ Rejeter</button>
+              </div>
+            </div>
+          `).join('');
+        },
+        approve: async (id) => {
+          const a = appData.articles.find(x => x.__backendId === id);
+          if (a) {
+            a.status = 'approved';
+            await window.dataSdk.update(a);
+            Component.Admin.updateStats();
+            Component.Admin.renderPending();
+            Component.Feed.render();
+            Component.Shop.render();
+            Component.Toast.show('✅ Approuvé!', 'success');
+          }
+        },
+        reject: async (id) => {
+          const a = appData.articles.find(x => x.__backendId === id);
+          if (a) {
+            await window.dataSdk.delete(a);
+            Component.Admin.updateStats();
+            Component.Admin.renderPending();
+            Component.Feed.render();
+            Component.Toast.show('✅ Rejeté!', 'success');
+          }
+        },
+        publishFromAdmin: async () => {
+          const type = document.getElementById('adminType').value;
+          const title = document.getElementById('adminTitle').value;
+          const content = document.getElementById('adminContent').value.trim();
+          const price = document.getElementById('adminPrice').value;
+          const autoPub = document.getElementById('adminAutoPublish').checked;
+          const emojis = window.selectedEmojis ? window.selectedEmojis.join(' ') : '';
 
-// ===== Render Feed =====
-function renderFeed(){
-  const container=document.getElementById('feedContainer');
-  const empty=document.getElementById('emptyState');
-  if(!container||!empty) return;
-  empty.style.display = State.posts.length ? 'none' : 'block';
-  container.innerHTML='';
-  State.posts.forEach(post=>{
-    const div=document.createElement('div');
-    div.className='glass p-4 mb-3';
-    div.innerHTML=`<h3>${post.title}</h3><p>${post.content}</p>`;
-    container.appendChild(div);
-  });
-}
+          if (!content) { Component.Toast.show('❌ Contenu vide', 'error'); return; }
 
-// ===== Modals =====
-function openModal(id){document.getElementById(id)?.classList.add('active');}
-function closeModal(id){document.getElementById(id)?.classList.remove('active');}
+          const article = {
+            type: type || 'article', 
+            title: title.trim() || '', 
+            content: content, 
+            author: 'AFRO BOY', 
+            phone: 'admin',
+            timestamp: new Date().toISOString(), 
+            likes: 0, 
+            status: autoPub ? 'approved' : 'pending',
+            price: price.trim() || '', 
+            emojis: emojis
+          };
 
-// ===== DOM Events =====
-document.addEventListener('DOMContentLoaded',()=>{
-  applyConfig();
-  initParticles();
+          const result = await window.dataSdk.create(article);
+          if (result.isOk) {
+            Component.Toast.show('✅ Créé!', 'success');
+            document.getElementById('adminTitle').value = '';
+            document.getElementById('adminContent').value = '';
+            document.getElementById('adminPrice').value = '';
+            document.getElementById('adminAutoPublish').checked = false;
+            window.selectedEmojis = [];
+            Component.Admin.updateEmojiDisplay();
+            Component.Admin.updateStats();
+            Component.Admin.renderPending();
+            Component.Feed.render();
+            Component.Shop.render();
+          } else {
+            Component.Toast.show('❌ Erreur: ' + (result.error?.message || 'création échouée'), 'error');
+          }
+        },
+        addEmoji: (emoji) => {
+          if (!window.selectedEmojis) window.selectedEmojis = [];
+          window.selectedEmojis.push(emoji);
+          Component.Admin.updateEmojiDisplay();
+        },
+        showCustomEmojiInput: () => {
+          const container = document.getElementById('adminEmojiContainer');
+          const existingInput = container.querySelector('[data-custom-emoji-input]');
+          if (existingInput) return;
+          
+          const inputDiv = document.createElement('div');
+          inputDiv.style.display = 'flex';
+          inputDiv.style.gap = '6px';
+          inputDiv.style.width = '100%';
+          inputDiv.setAttribute('data-custom-emoji-input', 'true');
+          
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'input-field';
+          input.placeholder = 'Ajoute un emoji...';
+          input.style.flex = '1';
+          input.style.padding = '8px 12px';
+          input.style.fontSize = '14px';
+          
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.textContent = '✓';
+          addBtn.style.background = 'var(--red)';
+          addBtn.style.color = '#fff';
+          addBtn.style.border = 'none';
+          addBtn.style.padding = '8px 14px';
+          addBtn.style.borderRadius = '8px';
+          addBtn.style.cursor = 'pointer';
+          addBtn.style.fontWeight = '600';
+          
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.textContent = '✕';
+          cancelBtn.style.background = 'rgba(255,55,55,0.15)';
+          cancelBtn.style.color = '#999';
+          cancelBtn.style.border = '1px solid rgba(255,55,55,0.3)';
+          cancelBtn.style.padding = '8px 12px';
+          cancelBtn.style.borderRadius = '8px';
+          cancelBtn.style.cursor = 'pointer';
+          
+          addBtn.onclick = () => {
+            const emoji = input.value.trim();
+            if (emoji.length > 0) {
+              Component.Admin.addEmoji(emoji);
+              inputDiv.remove();
+            }
+          };
+          
+          cancelBtn.onclick = () => {
+            inputDiv.remove();
+          };
+          
+          input.onkeypress = (e) => {
+            if (e.key === 'Enter') addBtn.click();
+          };
+          
+          inputDiv.appendChild(input);
+          inputDiv.appendChild(addBtn);
+          inputDiv.appendChild(cancelBtn);
+          container.appendChild(inputDiv);
+          input.focus();
+        },
+        updateEmojiDisplay: () => {
+          const preview = document.getElementById('adminEmojiPreview');
+          const list = document.getElementById('adminEmojiList');
+          if (!window.selectedEmojis || window.selectedEmojis.length === 0) {
+            preview.style.display = 'none';
+            return;
+          }
+          preview.style.display = 'block';
+          list.innerHTML = window.selectedEmojis.map((e, i) => `
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255,55,55,0.15); padding: 6px 10px; border-radius: 6px;">
+              <span style="font-size: 18px;">${e}</span>
+              <button type="button" onclick="window.selectedEmojis.splice(${i}, 1); Component.Admin.updateEmojiDisplay()" style="background: none; border: none; color: #999; cursor: pointer; font-size: 12px;">✕</button>
+            </div>
+          `).join('');
+        },
+        addPromoCode: () => {
+          const code = document.getElementById('adminPromoCode').value.trim().toUpperCase();
+          const value = document.getElementById('adminPromoValue').value.trim();
+          if (!code || !value) { Component.Toast.show('❌ Remplissez tous les champs', 'error'); return; }
+          appData.promoCodes.push({ code, value });
+          document.getElementById('adminPromoCode').value = '';
+          document.getElementById('adminPromoValue').value = '';
+          Component.Admin.renderPromos();
+          Component.Toast.show('✅ Code ajouté!', 'success');
+        },
+        renderPromos: () => {
+          const list = document.getElementById('adminPromoList');
+          if (appData.promoCodes.length === 0) { list.innerHTML = '<div style="text-align: center; padding: 12px; color: #666;">Aucun code</div>'; return; }
+          list.innerHTML = appData.promoCodes.map(p => `
+            <div class="flex justify-between items-center p-2 mb-2" style="background: rgba(255,215,0,0.08); border-radius: 8px;">
+              <div><div class="font-bold text-xs" style="color: #ffd700;">${p.code}</div><div class="text-xs" style="color: #fbbf24;">${p.value}</div></div>
+              <button onclick="Component.Admin.removePromo('${p.code}')" style="background: none; border: none; color: #999; cursor: pointer;">🗑️</button>
+            </div>
+          `).join('');
+        },
+        removePromo: (code) => {
+          appData.promoCodes = appData.promoCodes.filter(p => p.code !== code);
+          Component.Admin.renderPromos();
+          Component.Toast.show('✅ Supprimé!', 'success');
+        },
+        switchAffiliateTab: (tab) => {
+          document.querySelectorAll('#adminAffiliateModal .tab-btn').forEach(b => b.classList.remove('active'));
+          const btns = document.querySelectorAll('#adminAffiliateModal .tab-btn');
+          if (tab === 'pending') {
+            btns[0].classList.add('active');
+            document.getElementById('pendingAffiliateTab').style.display = 'block';
+            document.getElementById('approvedAffiliateTab').style.display = 'none';
+            Component.Admin.renderPendingAff();
+          } else {
+            btns[1].classList.add('active');
+            document.getElementById('pendingAffiliateTab').style.display = 'none';
+            document.getElementById('approvedAffiliateTab').style.display = 'block';
+            Component.Admin.renderApprovedAff();
+          }
+        },
+        renderPendingAff: () => {
+          const tab = document.getElementById('pendingAffiliateTab');
+          const pending = appData.affiliateRequests.filter(a => a.status === 'pending');
+          if (pending.length === 0) { tab.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Aucune demande</div>'; return; }
+          tab.innerHTML = pending.map(r => `
+            <div class="glass p-3 mb-3" style="background: rgba(255,215,0,0.08);">
+              <div style="font-size: 12px; color: #bbb; line-height: 1.4; margin-bottom: 10px;">
+                <div><strong>👤</strong> ${r.username}</div>
+                <div><strong>💼</strong> ${r.businessName}</div>
+                <div><strong>📧</strong> ${r.email}</div>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn-primary text-xs flex-1" onclick="Component.Admin.approveAff('${r.id}')">✅</button>
+                <button class="btn-ghost text-xs flex-1" onclick="Component.Admin.rejectAff('${r.id}')">❌</button>
+              </div>
+            </div>
+          `).join('');
+        },
+        renderApprovedAff: () => {
+          const tab = document.getElementById('approvedAffiliateTab');
+          const approved = appData.affiliateRequests.filter(a => a.status === 'approved');
+          if (approved.length === 0) { tab.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Aucun approuvé</div>'; return; }
+          tab.innerHTML = approved.map(r => `
+            <div class="glass p-3 mb-3" style="background: rgba(34,197,94,0.08);">
+              <div style="font-size: 12px; color: #bbb; margin-bottom: 10px;">
+                <div><strong>✅ ${r.username}</strong></div>
+                <div>${r.businessName}</div>
+              </div>
+              <button class="btn-ghost text-xs w-full" onclick="Component.Admin.removeAff('${r.id}')">🗑️ Supprimer</button>
+            </div>
+          `).join('');
+        },
+        approveAff: (id) => {
+          const r = appData.affiliateRequests.find(a => a.id === id);
+          if (r) {
+            r.status = 'approved';
+            const u = appData.users.find(x => x.phone === r.userId);
+            if (u) { u.affiliateStatus = 'approved'; u.affiliateData = { businessName: r.businessName, email: r.email }; }
+            Component.Admin.renderPendingAff();
+            Component.Toast.show('✅ Approuvé!', 'success');
+          }
+        },
+        rejectAff: (id) => {
+          appData.affiliateRequests = appData.affiliateRequests.filter(a => a.id !== id);
+          Component.Admin.renderPendingAff();
+          Component.Toast.show('✅ Rejeté!', 'success');
+        },
+        removeAff: (id) => {
+          const r = appData.affiliateRequests.find(a => a.id === id);
+          if (r) r.status = 'pending';
+          Component.Admin.renderApprovedAff();
+          Component.Toast.show('✅ Supprimé!', 'success');
+        }
+      },
 
-  document.getElementById('userBtn').addEventListener('click',()=>openModal('loginModal'));
-  document.getElementById('loginSubmitBtn').addEventListener('click',()=>login(
-    document.getElementById('loginEmail').value,
-    document.getElementById('loginPassword').value
-  ));
-  document.getElementById('registerSubmitBtn').addEventListener('click',()=>register(
-    document.getElementById('registerName').value,
-    document.getElementById('registerBio').value,
-    document.getElementById('registerEmail').value,
-    document.getElementById('registerPassword').value
-  ));
-  document.getElementById('switchLoginBtn').addEventListener('click',()=>{closeModal('registerModal');openModal('loginModal');});
-  document.getElementById('switchRegisterBtn').addEventListener('click',()=>{closeModal('loginModal');openModal('registerModal');});
-});
-</script>
-</body>
+      Shop: {
+        toggle: () => {
+          const c = document.getElementById('shopContainer');
+          const ch = document.getElementById('shopChevron');
+          if (c.style.display === 'none') {
+            c.style.display = 'block';
+            ch.style.transform = 'rotate(180deg)';
+            Component.Shop.render();
+          } else {
+            c.style.display = 'none';
+            ch.style.transform = 'rotate(0deg)';
+          }
+        },
+        render: () => {
+          const sp = document.getElementById('shopProducts');
+          const p = appData.articles.filter(a => a.type === 'produit' && a.status === 'approved');
+          if (p.length === 0) { sp.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;"><div style="font-size: 36px;">🛍️</div><p style="font-size: 13px; margin-top: 8px;">Aucun produit</p></div>'; return; }
+          sp.innerHTML = p.map(pr => `
+            <div class="glass p-3 mb-3" style="background: rgba(255,55,55,0.06);">
+              <div class="flex justify-between items-start mb-2">
+                <div><div class="font-bold text-sm">${pr.title || 'Produit'}</div></div>
+                <span style="background: linear-gradient(135deg, #ffd700, #ffed4e); color: #000; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px;">💰 ${pr.price}</span>
+              </div>
+              <p style="color: #bbb; font-size: 13px; margin-bottom: 10px;">${pr.content}</p>
+              ${pr.emojis ? `<div style="font-size: 48px; margin-bottom: 10px; letter-spacing: 4px;">${pr.emojis}</div>` : '<div style="width: 100%; border-radius: 8px; margin-bottom: 10px; max-height: 250px; background: linear-gradient(135deg, #2a0a0a, #1a0505); display: flex; align-items: center; justify-content: center; color: #666; font-size: 48px;">📸</div>'}
+              <button onclick="Component.Toast.show('🛒 Ajouté!', 'success')" class="btn-primary w-full text-xs" style="padding: 8px;">🛒 Ajouter</button>
+            </div>
+          `).join('');
+        }
+      },
+
+      Depose: {
+        sendMessage: () => {
+          const inp = document.getElementById('messageInput');
+          if (inp.value.trim()) {
+            appData.messages.push({ text: inp.value, timestamp: new Date() });
+            appData.userMPCount++;
+            inp.value = '';
+            Component.Depose.render();
+            Component.UserAuth.showStatus();
+            Component.Toast.show('✅ Envoyé!', 'success');
+          }
+        },
+        render: () => {
+          const list = document.getElementById('messagesList');
+          if (appData.messages.length === 0) { list.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Aucun message</div>'; return; }
+          list.innerHTML = appData.messages.map(m => `
+            <div class="glass p-2 mb-2 text-xs" style="background: rgba(255,55,55,0.08);">
+              <p style="color: #bbb; margin: 0;">${m.text}</p>
+              <div style="color: #666; font-size: 10px; margin-top: 4px;">${m.timestamp.toLocaleTimeString()}</div>
+            </div>
+          `).join('');
+        }
+      },
+
+      Promo: {
+        openPromoModal: () => {
+          Component.Promo.render();
+          Component.Modal.open('promoModal');
+        },
+        render: () => {
+          const list = document.getElementById('promoCodesList');
+          if (appData.promoCodes.length === 0) { list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 48px;">🎟️</div><p style="font-size: 14px; margin-top: 12px;">Aucun code</p></div>'; return; }
+          list.innerHTML = appData.promoCodes.map(p => `
+            <div class="glass p-3 mb-2" style="background: rgba(255,215,0,0.1);">
+              <div class="flex justify-between items-center">
+                <div><div class="font-bold text-sm" style="color: #ffd700;">🎟️ ${p.code}</div><div class="text-xs" style="color: #fbbf24; margin-top: 4px;">${p.value}</div></div>
+                <button onclick="navigator.clipboard.writeText('${p.code}'); Component.Toast.show('✅ Copié!', 'success')" class="btn-primary" style="padding: 6px 12px; font-size: 11px;">📋</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      },
+
+      Missions: {
+        openModal: () => {
+          Component.Missions.render();
+          Component.Modal.open('missionsModal');
+        },
+        render: () => {
+          const list = document.getElementById('missionsList');
+          if (!appData.currentUser) {
+            list.innerHTML = '<div class="glass p-4 text-center" style="background: rgba(255,55,55,0.08);"><div style="font-size: 36px; margin-bottom: 12px;">🔐</div><p style="color: #bbb; font-size: 14px; margin-bottom: 12px;">Connecte-toi pour rejoindre</p><button class="btn-primary w-full" onclick="Component.UserAuth.openModal()">Se connecter</button></div>';
+            return;
+          }
+          if (appData.currentUser.affiliateStatus === 'approved') Component.Missions.renderAffiliate();
+          else if (appData.currentUser.affiliateStatus === 'pending') list.innerHTML = '<div class="glass p-4 text-center" style="background: rgba(255,215,0,0.08);"><div style="font-size: 36px; margin-bottom: 12px;">⏳</div><p style="color: #fbbf24; font-weight: 600;">En attente...</p><p style="color: #999; font-size: 12px; margin-top: 8px;">Nous examinons ta candidature!</p></div>';
+          else Component.Missions.renderForm();
+        },
+        renderAffiliate: () => {
+          const list = document.getElementById('missionsList');
+          const products = [
+            { id: 1, name: 'AirPods Pro', emoji: '🎧', price: '299.99€', commission: '15%' },
+            { id: 2, name: 'Montre', emoji: '⌚', price: '199.99€', commission: '12%' },
+            { id: 3, name: 'Bracelet', emoji: '📿', price: '79.99€', commission: '18%' },
+            { id: 4, name: 'Collier', emoji: '✨', price: '149.99€', commission: '15%' }
+          ];
+          list.innerHTML = `
+            <div class="glass p-4 mb-4" style="background: rgba(34,197,94,0.08);">
+              <div class="flex items-center gap-2 mb-2"><span style="font-size: 24px;">✅</span><div><div style="color: #4ade80; font-weight: 700;">Tu es Affilié!</div><div style="color: #888; font-size: 11px;">Commission: <strong style="color: #4ade80;">15%</strong></div></div></div>
+            </div>
+            <div style="margin-bottom: 16px;"><div style="color: #fff; font-weight: 700; margin-bottom: 12px;">📦 Produits</div>${products.map(pr => `
+              <div class="glass p-3 mb-3" style="background: rgba(255,55,55,0.06);">
+                <div><div class="font-bold text-sm"><span style="font-size: 20px; margin-right: 6px;">${pr.emoji}</span>${pr.name}</div></div>
+                <div class="text-xs" style="color: #888; margin-top: 4px;">Prix: <strong style="color: #ff6b6b;">${pr.price}</strong></div>
+                <div class="text-xs" style="color: #4ade80; margin-top: 4px; font-weight: 600;">Commission: ${pr.commission}</div>
+                <button class="btn-primary w-full text-xs" style="padding: 8px; margin-top: 8px;" onclick="Component.Toast.show('🔗 Lien copié!', 'success')">🔗 Partager</button>
+              </div>
+            `).join('')}</div>
+          `;
+        },
+        renderForm: () => {
+          const list = document.getElementById('missionsList');
+          list.innerHTML = `
+            <div class="glass p-4 mb-4" style="background: rgba(255,55,55,0.08);">
+              <div style="text-align: center; margin-bottom: 16px;"><div style="font-size: 48px; margin-bottom: 12px;">💼</div><div style="color: #fff; font-weight: 700; font-size: 16px;">Deviens Affilié</div><div style="color: #888; font-size: 12px;">Revends nos produits & gagne!</div></div>
+              <div class="space-y-3">
+                <div><label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">MAGASIN</label><input type="text" id="affBusinessName" class="input-field" placeholder="Nom du magasin"></div>
+                <div><label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">EMAIL</label><input type="email" id="affEmail" class="input-field" placeholder="email@example.com"></div>
+                <div><label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">RÉSEAUX SOCIAUX</label><input type="text" id="affSocial" class="input-field" placeholder="https://instagram.com/..."></div>
+                <div><label class="text-xs font-semibold" style="color: #888; display: block; margin-bottom: 6px;">PRÉSENTATION</label><textarea id="affBio" class="compose-area" placeholder="Pourquoi tu veux revendre?" style="min-height: 80px;"></textarea></div>
+                <button class="btn-primary w-full" onclick="Component.Missions.submitForm()">✅ Envoyer candidature</button>
+              </div>
+            </div>
+          `;
+        },
+        submitForm: () => {
+          const bn = document.getElementById('affBusinessName').value.trim();
+          const em = document.getElementById('affEmail').value.trim();
+          const so = document.getElementById('affSocial').value.trim();
+          const bi = document.getElementById('affBio').value.trim();
+          if (!bn || !em || !so || !bi) { Component.Toast.show('❌ Remplissez tout!', 'error'); return; }
+          appData.affiliateRequests.push({
+            id: Date.now(), userId: appData.currentUser.phone, username: appData.currentUser.username,
+            businessName: bn, email: em, social: so, bio: bi, status: 'pending'
+          });
+          appData.currentUser.affiliateStatus = 'pending';
+          Component.Toast.show('✅ Candidature envoyée!', 'success');
+          setTimeout(() => Component.Missions.render(), 1000);
+        }
+      },
+
+      Lucky: {
+        spin: () => {
+          const modalEl = document.createElement('div');
+          modalEl.className = 'modal-overlay active';
+          modalEl.id = 'tempLuckyModal';
+          modalEl.style.zIndex = '5000';
+          modalEl.innerHTML = `
+            <div class="modal-content glass glass-strong" style="position: relative; z-index: 5001;">
+              <div class="p-4">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-lg font-bold">🎡 Roue de la Chance</h2>
+                  <button onclick="document.getElementById('tempLuckyModal').remove()" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+                </div>
+                <div style="text-align: center; padding: 20px;">
+                  <div id="tempWheelDisplay" style="font-size: 72px; margin-bottom: 20px;">🎡</div>
+                  <button id="tempSpinBtn" class="btn-primary w-full" style="padding: 12px; font-weight: 700;">🎉 TOURNER</button>
+                  <div id="tempWheelResult" style="display: none; margin-top: 16px;">
+                    <div style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; padding: 16px;">
+                      <div style="color: #4ade80; font-weight: 700; font-size: 16px; margin-bottom: 8px;">🎉 Gagné!</div>
+                      <div id="tempWheelRewardText" style="color: #ff9999; font-size: 18px; font-weight: 700;"></div>
+                    </div>
+                    <button class="btn-primary w-full" style="padding: 10px; margin-top: 12px;">✓ Réclamer</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modalEl);
+          
+          document.getElementById('tempSpinBtn').addEventListener('click', () => {
+            const spinBtn = document.getElementById('tempSpinBtn');
+            spinBtn.disabled = true;
+            spinBtn.style.opacity = '0.5';
+            const wheelDisplay = document.getElementById('tempWheelDisplay');
+            wheelDisplay.style.animation = 'spin-wheel 1s linear';
+            
+            setTimeout(() => {
+              wheelDisplay.style.animation = 'none';
+              const rewards = [
+                { emoji: '💰', text: '5€ crédités' },
+                { emoji: '🎁', text: '+2 produits gratuits' },
+                { emoji: '💳', text: '-10€ sur prochain achat' },
+                { emoji: '🔥', text: '+50% sur produits' },
+                { emoji: '⚡', text: 'Livraison gratuite' },
+                { emoji: '🌟', text: 'Double points fidélité' }
+              ];
+              const reward = rewards[Math.floor(Math.random() * rewards.length)];
+              wheelDisplay.textContent = reward.emoji;
+              document.getElementById('tempWheelRewardText').textContent = reward.text;
+              document.getElementById('tempWheelResult').style.display = 'block';
+              spinBtn.disabled = false;
+              spinBtn.style.opacity = '1';
+              
+              const claimBtn = document.querySelector('#tempWheelResult .btn-primary');
+              claimBtn.addEventListener('click', () => {
+                Component.Toast.show(`✅ ${reward.text} ajouté!`, 'success');
+                setTimeout(() => document.getElementById('tempLuckyModal').remove(), 300);
+              });
+              
+              Component.Toast.show(`🎉 ${reward.text}!`, 'success');
+            }, 1000);
+          });
+        }
+      },
+
+      Offers: {
+        openModal: () => {
+          if (!appData.currentUser) {
+            Component.Toast.show('❌ Connecte-toi d\'abord!', 'error');
+            Component.UserAuth.openModal();
+            return;
+          }
+          const modalEl = document.createElement('div');
+          modalEl.className = 'modal-overlay active';
+          modalEl.id = 'tempOffersModal';
+          modalEl.style.zIndex = '5000';
+          modalEl.innerHTML = `
+            <div class="modal-content glass glass-strong" style="position: relative; z-index: 5001;">
+              <div class="p-4">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-lg font-bold">🎁 Offres du jour</h2>
+                  <button onclick="document.getElementById('tempOffersModal').remove()" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:20px;">✕</button>
+                </div>
+                <div class="glass p-4 mb-4" style="background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,55,55,0.1)); border: 1px solid rgba(255,215,0,0.3); border-radius: 12px;">
+                  <div style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">🔥</div>
+                    <div class="font-bold" style="color: #ffd700; font-size: 18px; margin-bottom: 8px;">Offre Spéciale</div>
+                    <div style="color: #ff9999; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
+                      <div style="margin-bottom: 8px;"><span style="font-weight: 700;">2 produits GRATUITS</span></div>
+                      <div style="color: #bbb; font-size: 13px;">Pour toute commande de 45€ minimum</div>
+                    </div>
+                    <div style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 8px; margin-bottom: 12px;">
+                      <div style="color: #ffd700; font-size: 11px; font-weight: 700;">⏳ VALABLE JUSQU'À MINUIT</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="glass p-3 mb-4" style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.3); border-radius: 12px;">
+                  <div style="color: #4ade80; font-weight: 600; font-size: 13px;">✅ Offre automatiquement appliquée</div>
+                  <div style="color: #888; font-size: 11px; margin-top: 4px;">À partir de 45€ de commande</div>
+                </div>
+                <button class="btn-primary w-full" style="padding: 12px; font-weight: 700;" id="acceptOfferBtn">✓ J'accepte l'offre</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modalEl);
+          
+          const acceptBtn = modalEl.querySelector('#acceptOfferBtn');
+          acceptBtn.addEventListener('click', () => {
+            modalEl.remove();
+            Component.Modal.open('offerFormModal');
+          });
+        },
+        submitForm: () => {
+          const fullName = document.getElementById('offerFullName').value.trim();
+          const email = document.getElementById('offerEmail').value.trim();
+          const city = document.getElementById('offerCity').value.trim();
+          const zipCode = document.getElementById('offerZipCode').value.trim();
+          
+          if (!fullName || !email || !city || !zipCode) {
+            Component.Toast.show('❌ Tous les champs obligatoires!', 'error');
+            return;
+          }
+          
+          appData.userOffersCount++;
+          appData.userOrdersCount++;
+          Component.Toast.show('✅ Commande validée!', 'success');
+          document.getElementById('offerFullName').value = '';
+          document.getElementById('offerEmail').value = '';
+          document.getElementById('offerCity').value = '';
+          document.getElementById('offerZipCode').value = '';
+          Component.Modal.close('offerFormModal');
+          Component.UserAuth.showStatus();
+        }
+      }
+    };
+
+    document.getElementById('registerSubmitBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const p = document.getElementById('regPhone').value.trim();
+      const u = document.getElementById('regUsername').value.trim();
+      if (!p || !u) { Component.Toast.show('❌ Remplissez tout!', 'error'); return; }
+      if (appData.users.find(x => x.phone === p)) { Component.Toast.show('❌ Numéro existant!', 'error'); return; }
+      if (appData.memberCount <= 0) { Component.Toast.show('❌ Limite atteinte!', 'error'); return; }
+      
+      appData.memberCount--;
+      localStorage.setItem(appData.storageKey, appData.memberCount);
+      
+      appData.currentUser = { phone: p, username: u, affiliateStatus: null };
+      appData.users.push(appData.currentUser);
+      document.getElementById('regPhone').value = '';
+      document.getElementById('regUsername').value = '';
+      Component.UserAuth.showStatus();
+      Component.Admin.updateStats();
+      Component.Feed.updateStats();
+      Component.Toast.show(`✅ Inscrit! ${appData.memberCount}/100 places restantes`, 'success');
+    });
+
+    document.getElementById('loginSubmitBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const p = document.getElementById('loginPhone').value.trim();
+      if (!p) { Component.Toast.show('❌ Entrez un numéro!', 'error'); return; }
+      const u = appData.users.find(x => x.phone === p);
+      if (u) {
+        appData.currentUser = u;
+        document.getElementById('loginPhone').value = '';
+        Component.UserAuth.showStatus();
+        Component.Toast.show('✅ Connecté!', 'success');
+      } else Component.Toast.show('❌ Non trouvé!', 'error');
+    });
+
+    document.getElementById('switchLoginBtn').addEventListener('click', () => {
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('loginForm').style.display = 'block';
+    });
+
+    document.getElementById('switchRegisterBtn').addEventListener('click', () => {
+      document.getElementById('registerForm').style.display = 'block';
+      document.getElementById('loginForm').style.display = 'none';
+    });
+
+    Component.Feed.render();
+    Component.Feed.updateStats();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ed4b0d7f4e35420',t:'MTc3NjM1ODI0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
